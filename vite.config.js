@@ -1,26 +1,26 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: './',
+  base: "./",
 
   build: {
     rollupOptions: {
       input: {
-        main: './index.html', // Main entry point
-        jobWorkView: './src/jobWorkView/jobWorkView.html', // Job Work View page
-        upload3DFile: './src/upload3DFiles/upload3DFile.html', // Upload 3D File page
+        main: "./index.html", // Main entry point
+        jobWorkView: "./src/jobWorkView/jobWorkView.html", // Job Work View page
+        upload3DFile: "./upload3DFile.html", // Upload 3D File page
       },
       output: {
         manualChunks(id) {
           // Force `viewAllJobs.js` into its own chunk
-          if (id.includes('viewAllJobs.js')) {
-            return 'viewAllJobs';
+          if (id.includes("viewAllJobs.js")) {
+            return "viewAllJobs";
           }
         },
       },
     },
     chunkSizeWarningLimit: 1000,
-    outDir: 'dist',
+    outDir: "dist",
   },
 
   server: {
