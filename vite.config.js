@@ -6,7 +6,8 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: "./index.html", // Main entry point
+        main: "./index.html",
+        createJob: "./createJob.html", // Create Job page // Main entry point
         jobWorkView: "./src/jobWorkView/jobWorkView.html", // Job Work View page
         upload3DFile: "./upload3DFile.html", // Upload 3D File page
       },

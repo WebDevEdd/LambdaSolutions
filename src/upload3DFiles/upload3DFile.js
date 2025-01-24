@@ -15,7 +15,7 @@ uploadForm.addEventListener("submit", async (event) => {
 
     if (response.ok) {
       alert("File uploaded successfully!");
-      window.location.href = `./createJob.html?fileUrl=${encodeURIComponent(
+      window.location.href = `/createJob.html?fileUrl=${encodeURIComponent(
         data.fileUrl
       )}`;
     } else {

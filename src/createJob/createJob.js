@@ -21,7 +21,7 @@ function loadModel(fileUrl) {
         createComponentBox(name);
         filters.add(name.slice(0, 3));
       });
-      grayOutIsStatic()
+      grayOutIsStatic();
       createFilterButtons();
     },
     (xhr) => {
@@ -32,19 +32,19 @@ function loadModel(fileUrl) {
     }
   );
 }
-function grayOutIsStatic(){
-  const allBoxes = document.querySelectorAll('.component-box')
+function grayOutIsStatic() {
+  const allBoxes = document.querySelectorAll(".component-box");
 
   allBoxes.forEach((e) => {
-    e.addEventListener('click', () => {
-      if (e.querySelector('label').querySelector('input').checked){
-        e.classList.add('grey-out')
+    e.addEventListener("click", () => {
+      if (e.querySelector("label").querySelector("input").checked) {
+        e.classList.add("grey-out");
       }
-      if(e.querySelector('label').querySelector('input').checked === false){
-        e.classList.remove('grey-out')
+      if (e.querySelector("label").querySelector("input").checked === false) {
+        e.classList.remove("grey-out");
       }
-    })
-  })
+    });
+  });
 }
 // Function to create component box
 function createComponentBox(com) {
@@ -124,9 +124,21 @@ function createButton(text, className) {
 function addInput(container, placeholder) {
   let newInput = document.createElement("input");
   newInput.type = "text";
-  newInput.value = placeholder;
+  newInput.placeholder = placeholder; // Use placeholder instead of value
   newInput.classList.add("new-input");
+
+  // Add event listener to detect Enter key
+  newInput.addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault(); // Prevent form submission if inside a form
+      const nextInput = addInput(container, placeholder); // Add a new input
+      nextInput.focus(); // Move the cursor to the new input
+    }
+  });
+
   container.appendChild(newInput);
+
+  return newInput; // Return the newly created input for focusing
 }
 
 // Function to create filter buttons
@@ -258,8 +270,8 @@ function createJob() {
   const fileUrl = new URLSearchParams(window.location.search).get("fileUrl");
 
   if (!jobTitle || !jobUnit || !jobDescription || !fileUrl) {
-  alert("Please fill all the fields and upload a 3D file.");
-  return;
+    alert("Please fill all the fields and upload a 3D file.");
+    return;
   }
 
   allBoxes.forEach((e) => {
@@ -269,7 +281,7 @@ function createJob() {
     let allMaterials = materialsContainer.querySelectorAll(".new-input");
     let allSteps = stepsContainer.querySelectorAll(".new-input");
 
-    let isStatic = e.querySelector('label').querySelector('input').checked
+    let isStatic = e.querySelector("label").querySelector("input").checked;
 
     let componentName = e.querySelector("h3").textContent;
     let step = [];
@@ -288,7 +300,7 @@ function createJob() {
       static: isStatic,
       isInstalled: false,
       requiredMaterials: material,
-      steps: step
+      steps: step,
     };
     components.push(component);
     console.log(components);
@@ -307,13 +319,13 @@ function createJob() {
 
   //Save job to the database
   saveJobToDB(job)
-  .then(() => {
-    document.querySelector('.job-saved-layer').style.display = 'flex'
-  })
-  .catch(error => {
-  console.error('Error saving job:', error);
-  alert('Failed to save job.');
-  });
+    .then(() => {
+      document.querySelector(".job-saved-layer").style.display = "flex";
+    })
+    .catch((error) => {
+      console.error("Error saving job:", error);
+      alert("Failed to save job.");
+    });
 }
 
 // Event listener for the save button
