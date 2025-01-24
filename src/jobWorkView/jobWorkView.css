@@ -65,32 +65,54 @@ body {
     }
     
     .operations-title {
-      text-align: center;
-      font-size: 22px;
-      margin-bottom: 20px;
-      color: #2563eb; /* Vibrant blue for highlight */
-      text-transform: uppercase;
+      font-size: 20px;
       font-weight: bold;
+      color: #2d3748; /* Dark gray */
+      margin-bottom: 15px;
     }
     
     /* Operation Container */
     .operation {
-      margin-bottom: 15px;
+      margin-bottom: 20px;
       padding: 15px;
-      background-color: #f9fafb;
-      border: 1px solid #e5e7eb; /* Light gray border */
-      border-radius: 8px; /* Subtle rounding */
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      border: 1px solid #e2e8f0; /* Light gray border */
+      border-radius: 8px;
+      background-color: #f9fafb; /* Light background */
     }
-    
     /* Operation Name */
     .operation-name {
       font-size: 18px;
-      font-weight: 600;
+      font-weight: bold;
       margin-bottom: 10px;
-      color: #374151; /* Dark gray */
+      color: #1a202c; /* Dark gray */
     }
-    
+    .materials-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #4a5568; /* Medium gray */
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
+    .materials-list {
+      list-style: disc; /* Bulleted list */
+      padding-left: 20px; /* Indent bullets */
+      margin-bottom: 10px;
+    }
+    .material-item {
+      font-size: 14px;
+      color: #718096; /* Neutral gray */
+      margin-bottom: 5px;
+    }
+    details {
+      margin-top: 15px;
+    }
+    details summary {
+      font-size: 16px;
+      font-weight: bold;
+      color: #2d3748; /* Dark gray */
+      cursor: pointer;
+      margin-bottom: 10px;
+    }
     /* Steps Dropdown */
     .operation-drop-down summary {
       font-size: 16px;
@@ -100,9 +122,12 @@ body {
     }
     
     .steps-list {
-      list-style: none;
-      padding: 0;
-      margin: 10px 0;
+      list-style: decimal; /* Numbered list */
+      padding-left: 20px;
+      margin-top: 5px;
+    }
+    .operation-step span {
+      color: #2d3748; /* Dark gray */
     }
     
     .operation-step {
@@ -116,22 +141,19 @@ body {
       background-color: #ffffff;
     }
     
-    /* Buttons */
     .complete-btn {
-      background-color: #4fbb49; /* Vibrant green */
-      color: white;
+      padding: 5px 10px;
+      background-color: #48bb78; /* Green */
+      color: #ffffff; /* White text */
       border: none;
-      border-radius: 6px;
-      padding: 8px 14px;
-      font-size: 14px;
+      border-radius: 4px;
       cursor: pointer;
+      font-size: 12px;
       font-weight: bold;
-      transition: background-color 0.3s ease, transform 0.2s ease;
+      transition: background-color 0.2s ease;
     }
-    
     .complete-btn:hover {
-      background-color: #099002; /* Darker green on hover */
-      transform: translateY(-2px); /* Subtle lift effect */
+      background-color: #38a169; /* Darker green */
     }
     
     .job-in {
