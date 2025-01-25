@@ -1,5 +1,10 @@
-import { defineConfig } from 'vite';
+import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: '/LambdaSolutions/',
+  base: "/LambdaSolutions/", // GitHub Pages base path
+  build: {
+    rollupOptions: {
+      input: "./index.html", // Entry point
+    },
+  },
 });
