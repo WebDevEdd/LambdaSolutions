@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Uploaded File</title>
+    <link rel="stylesheet" href="/src/createJob/createJob.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Create Job</h1>
+        
+        <div class="job-form">
+          <label for="jobTitle">Job Title:</label>
+          <input type="text" id="jobTitle" name="jobTitle">
+          
+          <label for="unit">Unit:</label>
+          <input type="text" id="unit" name="unit">
+          
+          <label for="description">Description:</label>
+          <textarea id="description" name="description"></textarea>
+          
+          <button class="save-button">Save</button>
+        </div>
+      
+        <div class="bulk-actions">
+          <button id="selectAll" class="select-all-button">Select All</button>
+          <button id="addMaterialToSelected" class="add-to-selected-button">Add Material to Selected</button>
+          <button id="addStepToSelected" class="add-to-selected-button">Add Step to Selected</button>
+        </div>
+        <div class="filter-container">
+            <h3>Filter Components:</h3>
+            <div id="filterButtons"></div>
+            <button id="clearFilter" class="clear-filter-button">Clear Filter</button>
+          </div>
+      
+        <h2>Components</h2>
+        <div class="components-container">
+          <!--<div class="component-box" data-filter="hrd"><input type="checkbox" class="component-checkbox" data-component="hrd_fastener1_wir-1000"><h3>hrd_fastener1_wir-1000</h3><label><input type="checkbox" class="form-input"> Is Static</label><label><input type="checkbox" class="form-input"> Is Installed</label><h4>Required Materials</h4><div class="materials-container"><input type="text" placeholder="enter material..." class="new-input" value="asgdf"></div><button class="add">Add Material</button><h4>Steps</h4><div class="steps-container"><input type="text" placeholder="Step 1..." class="new-input" value="asfh"></div><button class="add">Add Step</button></div>-->
+        </div> 
+      </div>
+    <p id="fileInfo"></p>
+
+
+    <div class="job-saved-layer">
+      <div class="job-saved-window">
+        <div class="job-saved-container">
+          <h1>
+            Job Saved Successfully!
+          </h1>
+          <a href="http://localhost:5173/viewAllJobs.html">
+            <button >
+              View All Jobs
+            </button>
+          </a>
+        </div>
+      </div>
+    </div>
+    <script src="/src/createJob/createJob.js" type="module"></script>
+    <script type="module" src="/src/createJob/saveJobtoDB.js"></script>
+</body>
+</html>
