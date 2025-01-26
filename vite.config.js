@@ -1,10 +1,19 @@
-import { defineConfig } from "vite";
+import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: "/LambdaSolutions/", // GitHub Pages base path
+  base: './', // Use this if deploying to a subdirectory like /LambdaSolutions/
   build: {
     rollupOptions: {
-      input: "./index.html", // Entry point
+      input: {
+        main: './index.html',
+        jobWorkView: './src/jobWorkView/jobWorkView.html',
+        upload3DFile: './src/upload3DFiles/upload3DFile.html',
+      },
     },
+    outDir: 'dist',
+  },
+  server: {
+    port: 4173,
+    open: true,
   },
 });

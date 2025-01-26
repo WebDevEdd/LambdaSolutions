@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload File</title>
+    <link rel="stylesheet" href="./upload3DFile.css">
+</head>
+<body>
+    <h1>Upload 3D File and Create Job</h1>
+
+    <form id="uploadForm" enctype="multipart/form-data">
+        <label for="file">Select 3D File:</label>
+        <input type="file" id="file" name="file" accept=".glb" required>
+        <input type="submit" value="Upload">
+    </form>
+
+    <script type="module" src="./upload3DFiles.js"></script>
+</body>
+</html>

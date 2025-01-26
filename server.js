@@ -12,7 +12,7 @@ app.use(express.json());
 // CORS configuration
 app.use(
   cors({
-    origin: "http://localhost:5173", // Or use '*' for development purposes
+    origin: "http://localhost:4173", // Or use '*' for development purposes
     methods: ["GET", "POST"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
