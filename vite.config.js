@@ -1,17 +1,28 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: './', // Use this if deploying to a subdirectory like /LambdaSolutions/
+  base: './',
+
   build: {
     rollupOptions: {
       input: {
-        main: './index.html',
-        jobWorkView: './src/jobWorkView/jobWorkView.html',
-        upload3DFile: './src/upload3DFiles/upload3DFile.html',
+        main: './index.html', // Main entry point
+        jobWorkView: './src/jobWorkView/jobWorkView.html', // Job Work View page
+        upload3DFile: './src/upload3DFiles/upload3DFile.html', // Upload 3D File page
+      },
+      output: {
+        manualChunks(id) {
+          // Force `viewAllJobs.js` into its own chunk
+          if (id.includes('viewAllJobs.js')) {
+            return 'viewAllJobs';
+          }
+        },
       },
     },
+    chunkSizeWarningLimit: 1000,
     outDir: 'dist',
   },
+
   server: {
     port: 4173,
     open: true,
