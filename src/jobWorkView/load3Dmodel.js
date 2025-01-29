@@ -19,33 +19,29 @@ export function load3DModel(modelUrl, containerSelector) {
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
-  container.innerHTML = ""; // Clear previous content
+  container.innerHTML = "";
   container.appendChild(renderer.domElement);
 
-  // Ambient Light: Uniform illumination
+  // Lights setup (unchanged)
   const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
   scene.add(ambientLight);
 
-  // Hemisphere Light: Adds additional soft light from sky and ground
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0xaaaaaa, 1.5);
   hemiLight.position.set(0, 50, 0);
   scene.add(hemiLight);
 
-  // Directional Light 1: Main directional light
   const directionalLight1 = new THREE.DirectionalLight(0xffffff, 2);
   directionalLight1.position.set(10, 10, 10);
   directionalLight1.target.position.set(0, 0, 0);
   scene.add(directionalLight1);
   scene.add(directionalLight1.target);
 
-  // Directional Light 2: Secondary light from the opposite direction
   const directionalLight2 = new THREE.DirectionalLight(0xffffff, 2);
   directionalLight2.position.set(-10, 10, -10);
   directionalLight2.target.position.set(0, 0, 0);
   scene.add(directionalLight2);
   scene.add(directionalLight2.target);
 
-  // Directional Light: Positioned below the model
   const directionalLightBottom = new THREE.DirectionalLight(0xffffff, 2);
   directionalLightBottom.position.set(0, -10, 0);
   directionalLightBottom.target.position.set(0, 0, 0);
@@ -54,11 +50,56 @@ export function load3DModel(modelUrl, containerSelector) {
 
   // Orbit Controls
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.enableDamping = true; // Smooth movement
+  controls.enableDamping = true;
   controls.dampingFactor = 0.05;
   controls.minDistance = 1;
   controls.maxDistance = 50;
 
+  // Raycaster setup
+  const raycaster = new THREE.Raycaster();
+  const mouse = new THREE.Vector2();
+  let hoveredObject = null;
+  let originalMaterials = new Map();
+  let interactiveMeshes = [];
+
+  // Mouse move event listener (now container-specific)
+  container.addEventListener("mousemove", (event) => {
+    const rect = container.getBoundingClientRect();
+    mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
+    mouse.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
+
+    scene.updateMatrixWorld();
+    raycaster.setFromCamera(mouse, camera);
+
+    const intersects = raycaster.intersectObjects(interactiveMeshes, false);
+
+    if (intersects.length > 0) {
+      const firstIntersectedObject = intersects[0].object;
+
+      if (hoveredObject !== firstIntersectedObject) {
+        // Revert previous hover state
+        if (hoveredObject && originalMaterials.has(hoveredObject)) {
+          hoveredObject.material = originalMaterials.get(hoveredObject).clone();
+        }
+
+        // Set new hover state
+        hoveredObject = firstIntersectedObject;
+        if (!originalMaterials.has(hoveredObject)) {
+          originalMaterials.set(hoveredObject, hoveredObject.material.clone());
+        }
+
+        // Apply hover effect
+        hoveredObject.material = originalMaterials.get(hoveredObject).clone();
+        hoveredObject.material.color.set(0xff0000);
+      }
+    } else if (hoveredObject) {
+      // Revert hover state when no intersection
+      hoveredObject.material = originalMaterials.get(hoveredObject).clone();
+      hoveredObject = null;
+    }
+  });
+
+  // Load model
   const loader = new GLTFLoader();
   loader.load(
     modelUrl,
@@ -68,9 +109,18 @@ export function load3DModel(modelUrl, containerSelector) {
       model.position.set(0, 0, 0);
       model.scale.set(1, 1, 1);
 
+      // Collect interactive meshes
+      model.traverse((child) => {
+        if (child.isMesh) {
+          child.material = child.material.clone();
+          interactiveMeshes.push(child);
+        }
+      });
+
+      // Animation loop
       const animate = function () {
         requestAnimationFrame(animate);
-        controls.update(); // Update controls
+        controls.update();
         renderer.render(scene, camera);
       };
       animate();
@@ -85,16 +135,14 @@ export function load3DModel(modelUrl, containerSelector) {
 
   camera.position.z = 8;
 
-  // Resize Handler: Adjust camera and renderer on window resize
+  // Resize handler
   window.addEventListener("resize", () => {
     const width = container.clientWidth;
     const height = container.clientHeight;
 
-    // Update camera aspect ratio and projection matrix
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
 
-    // Update renderer size
     renderer.setSize(width, height);
   });
 }
