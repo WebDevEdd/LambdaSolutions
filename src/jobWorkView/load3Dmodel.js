@@ -9,6 +9,21 @@ export function load3DModel(modelUrl, containerSelector) {
     return;
   }
 
+  // Create name display overlay
+  const nameDisplay = document.createElement('div');
+  nameDisplay.style.position = 'absolute';
+  nameDisplay.style.top = '10px';
+  nameDisplay.style.left = '10px';
+  nameDisplay.style.padding = '5px 10px';
+  nameDisplay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+  nameDisplay.style.color = 'white';
+  nameDisplay.style.fontFamily = 'Arial, sans-serif';
+  nameDisplay.style.fontSize = '14px';
+  nameDisplay.style.borderRadius = '4px';
+  nameDisplay.style.display = 'none';
+  container.style.position = 'relative';
+  container.appendChild(nameDisplay);
+
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(
     75,
@@ -21,6 +36,7 @@ export function load3DModel(modelUrl, containerSelector) {
   renderer.setSize(container.clientWidth, container.clientHeight);
   container.innerHTML = "";
   container.appendChild(renderer.domElement);
+  container.appendChild(nameDisplay);  // Add nameDisplay after renderer
 
   // Lights setup (unchanged)
   const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
@@ -62,7 +78,13 @@ export function load3DModel(modelUrl, containerSelector) {
   let originalMaterials = new Map();
   let interactiveMeshes = [];
 
-  // Mouse move event listener (now container-specific)
+  // Helper function to get display name
+  const getDisplayName = (object) => {
+    // Try to get the most meaningful name
+    return object.userData.name || object.name || 'Unnamed Component';
+  };
+
+  // Mouse move event listener
   container.addEventListener("mousemove", (event) => {
     const rect = container.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
@@ -91,11 +113,19 @@ export function load3DModel(modelUrl, containerSelector) {
         // Apply hover effect
         hoveredObject.material = originalMaterials.get(hoveredObject).clone();
         hoveredObject.material.color.set(0xff0000);
+
+        // Update name display
+        nameDisplay.textContent = getDisplayName(hoveredObject);
+        nameDisplay.style.display = 'block';
       }
-    } else if (hoveredObject) {
+    } else {
       // Revert hover state when no intersection
-      hoveredObject.material = originalMaterials.get(hoveredObject).clone();
-      hoveredObject = null;
+      if (hoveredObject) {
+        hoveredObject.material = originalMaterials.get(hoveredObject).clone();
+        hoveredObject = null;
+      }
+      // Hide name display
+      nameDisplay.style.display = 'none';
     }
   });
 
@@ -114,6 +144,11 @@ export function load3DModel(modelUrl, containerSelector) {
         if (child.isMesh) {
           child.material = child.material.clone();
           interactiveMeshes.push(child);
+          
+          // Try to get name from parent if child has no name
+          if (!child.name && child.parent) {
+            child.name = child.parent.name;
+          }
         }
       });
 
