@@ -288,11 +288,15 @@ function createJob() {
     let material = [];
 
     allSteps.forEach((el) => {
-      step.push(el.value);
+      if (el.value != "") {
+        step.push(el.value);
+      }
     });
 
     allMaterials.forEach((el) => {
-      material.push(el.value);
+      if (el.value != "") {
+        material.push(el.value);
+      }
     });
 
     let component = {

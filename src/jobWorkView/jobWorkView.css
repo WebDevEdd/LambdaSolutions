@@ -213,3 +213,26 @@ body {
 .visibility-toggle input[type="checkbox"] {
   margin: 0;
 }
+
+.prefix-section {
+  margin-bottom: 20px;
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.prefix-section summary {
+  padding: 10px;
+  background: #f3f4f6;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.component-selection {
+  margin: 10px 0;
+}
+
+.work-timer {
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  z-index: 1000;
+}
