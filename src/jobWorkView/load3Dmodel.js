@@ -9,6 +9,36 @@ export function load3DModel(modelUrl, containerSelector) {
     return;
   }
 
+  // Clear container first
+  container.innerHTML = "";
+  container.style.position = 'relative';
+
+  // Create component controls
+  const controlsContainer = document.createElement('div');
+  controlsContainer.className = 'component-controls';
+  
+  // Create main dropdown
+  const mainDropdown = document.createElement('select');
+  mainDropdown.className = 'filter-dropdown';
+  mainDropdown.innerHTML = '<option value="all">All Components</option>';
+  
+  // Create prefix dropdown
+  const prefixDropdown = document.createElement('select');
+  prefixDropdown.className = 'filter-dropdown';
+  prefixDropdown.innerHTML = '<option value="all">All Prefixes</option>';
+  
+  // Create visibility toggle
+  const visibilityToggle = document.createElement('label');
+  visibilityToggle.className = 'visibility-toggle';
+  visibilityToggle.innerHTML = `
+    <input type="checkbox" checked>
+    <span>Visible</span>
+  `;
+  
+  controlsContainer.appendChild(prefixDropdown);
+  controlsContainer.appendChild(mainDropdown);
+  controlsContainer.appendChild(visibilityToggle);
+
   // Create name display overlay
   const nameDisplay = document.createElement('div');
   nameDisplay.style.position = 'absolute';
@@ -21,9 +51,8 @@ export function load3DModel(modelUrl, containerSelector) {
   nameDisplay.style.fontSize = '14px';
   nameDisplay.style.borderRadius = '4px';
   nameDisplay.style.display = 'none';
-  container.style.position = 'relative';
-  container.appendChild(nameDisplay);
 
+  // Three.js setup
   const scene = new THREE.Scene();
   const camera = new THREE.PerspectiveCamera(
     75,
@@ -34,11 +63,13 @@ export function load3DModel(modelUrl, containerSelector) {
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
-  container.innerHTML = "";
-  container.appendChild(renderer.domElement);
-  container.appendChild(nameDisplay);  // Add nameDisplay after renderer
 
-  // Lights setup (unchanged)
+  // Add elements in correct order
+  container.appendChild(renderer.domElement);
+  container.appendChild(nameDisplay);
+  container.appendChild(controlsContainer);
+
+  // Lights setup
   const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
   scene.add(ambientLight);
 
@@ -71,18 +102,88 @@ export function load3DModel(modelUrl, containerSelector) {
   controls.minDistance = 1;
   controls.maxDistance = 50;
 
+  // Component management
+  const componentMap = new Map();
+  const prefixMap = new Map();
+
+  const getPrefix = (name) => {
+    return (name || "").substring(0, 3).toLowerCase();
+  };
+
+  const updateDropdowns = (components) => {
+    mainDropdown.innerHTML = '<option value="all">All Components</option>';
+    prefixDropdown.innerHTML = '<option value="all">All Prefixes</option>';
+
+    const prefixes = new Set([...prefixMap.keys()]);
+    prefixes.forEach(prefix => {
+      const option = document.createElement('option');
+      option.value = prefix;
+      option.textContent = prefix.toUpperCase();
+      prefixDropdown.appendChild(option);
+    });
+
+    components.forEach(component => {
+      const option = document.createElement('option');
+      option.value = component.name;
+      option.textContent = component.name;
+      mainDropdown.appendChild(option);
+    });
+  };
+
+  const toggleVisibility = (component, visible) => {
+    if (component) {
+      component.visible = visible;
+    }
+  };
+
+  // Event listeners
+  prefixDropdown.addEventListener('change', (e) => {
+    const prefix = e.target.value;
+    const components = prefix === 'all' ? 
+      [...componentMap.values()] : 
+      [...prefixMap.get(prefix) || []];
+    
+    mainDropdown.innerHTML = '<option value="all">All Components</option>';
+    components.forEach(component => {
+      const option = document.createElement('option');
+      option.value = component.name;
+      option.textContent = component.name;
+      mainDropdown.appendChild(option);
+    });
+  });
+
+  mainDropdown.addEventListener('change', (e) => {
+    const componentName = e.target.value;
+    const component = componentMap.get(componentName);
+    
+    if (component) {
+      visibilityToggle.querySelector('input').checked = component.visible;
+    }
+  });
+
+  visibilityToggle.querySelector('input').addEventListener('change', (e) => {
+    const componentName = mainDropdown.value;
+    if (componentName === 'all') {
+      const prefix = prefixDropdown.value;
+      const components = prefix === 'all' ? 
+        [...componentMap.values()] : 
+        [...prefixMap.get(prefix) || []];
+      
+      components.forEach(component => {
+        toggleVisibility(component, e.target.checked);
+      });
+    } else {
+      const component = componentMap.get(componentName);
+      toggleVisibility(component, e.target.checked);
+    }
+  });
+
   // Raycaster setup
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let hoveredObject = null;
   let originalMaterials = new Map();
   let interactiveMeshes = [];
-
-  // Helper function to get display name
-  const getDisplayName = (object) => {
-    // Try to get the most meaningful name
-    return object.userData.name || object.name || 'Unnamed Component';
-  };
 
   // Mouse move event listener
   container.addEventListener("mousemove", (event) => {
@@ -99,32 +200,26 @@ export function load3DModel(modelUrl, containerSelector) {
       const firstIntersectedObject = intersects[0].object;
 
       if (hoveredObject !== firstIntersectedObject) {
-        // Revert previous hover state
         if (hoveredObject && originalMaterials.has(hoveredObject)) {
           hoveredObject.material = originalMaterials.get(hoveredObject).clone();
         }
 
-        // Set new hover state
         hoveredObject = firstIntersectedObject;
         if (!originalMaterials.has(hoveredObject)) {
           originalMaterials.set(hoveredObject, hoveredObject.material.clone());
         }
 
-        // Apply hover effect
         hoveredObject.material = originalMaterials.get(hoveredObject).clone();
         hoveredObject.material.color.set(0xff0000);
 
-        // Update name display
-        nameDisplay.textContent = getDisplayName(hoveredObject);
+        nameDisplay.textContent = hoveredObject.name || 'Unnamed Component';
         nameDisplay.style.display = 'block';
       }
     } else {
-      // Revert hover state when no intersection
       if (hoveredObject) {
         hoveredObject.material = originalMaterials.get(hoveredObject).clone();
         hoveredObject = null;
       }
-      // Hide name display
       nameDisplay.style.display = 'none';
     }
   });
@@ -139,18 +234,28 @@ export function load3DModel(modelUrl, containerSelector) {
       model.position.set(0, 0, 0);
       model.scale.set(1, 1, 1);
 
-      // Collect interactive meshes
       model.traverse((child) => {
         if (child.isMesh) {
           child.material = child.material.clone();
           interactiveMeshes.push(child);
           
-          // Try to get name from parent if child has no name
           if (!child.name && child.parent) {
             child.name = child.parent.name;
           }
+
+          if (child.name) {
+            componentMap.set(child.name, child);
+            
+            const prefix = getPrefix(child.name);
+            if (!prefixMap.has(prefix)) {
+              prefixMap.set(prefix, new Set());
+            }
+            prefixMap.get(prefix).add(child);
+          }
         }
       });
+
+      updateDropdowns([...componentMap.values()]);
 
       // Animation loop
       const animate = function () {
