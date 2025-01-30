@@ -1,21 +1,27 @@
 import { defineConfig } from "vite";
-import { resolve } from "path";
 
 export default defineConfig({
-  base: "/LambdaSolutions/",  // GitHub Pages Base Path
+  base: "./",
 
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, "index.html"),
-        createJob: resolve(__dirname, "createJob.html"),
-        jobWorkView: resolve(__dirname, "src/jobWorkView/jobWorkView.html"),
-        upload3DFile: resolve(__dirname, "upload3DFile.html"),
+        main: "./index.html",
+        createJob: "./createJob.html", // Create Job page // Main entry point
+        jobWorkView: "./src/jobWorkView/jobWorkView.html", // Job Work View page
+        upload3DFile: "./upload3DFile.html", // Upload 3D File page
+      },
+      output: {
+        manualChunks(id) {
+          // Force `viewAllJobs.js` into its own chunk
+          if (id.includes("viewAllJobs.js")) {
+            return "viewAllJobs";
+          }
+        },
       },
     },
-    assetsInlineLimit: 0, // Ensures images & assets aren't inlined
+    chunkSizeWarningLimit: 1000,
     outDir: "dist",
-    emptyOutDir: true, // Clears previous builds
   },
 
   server: {
