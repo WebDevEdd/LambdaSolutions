@@ -2,7 +2,7 @@ import "./viewAllJobs.css";
 
 // Replace localhost with your public Ngrok URL
 fetch(
-  "https://4e6f-2603-8001-1b00-430d-3104-e4ed-45d8-479f.ngrok-free.app/api/jobs"
+  "https://c69e-2603-8001-1b00-430d-4d6e-86d2-9687-8561.ngrok-free.app/api/jobs"
 ) // Replace this with your public server URL
   .then((response) => {
     if (!response.ok) {
