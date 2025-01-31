@@ -3,15 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Upload File</title>
+    <title>Upload 3D Files</title>
     <link rel="stylesheet" href="/src/upload3DFiles/upload3DFile.css">
 </head>
 <body>
     <h1>Upload 3D File and Create Job</h1>
 
     <form id="uploadForm" enctype="multipart/form-data">
-        <label for="file">Select 3D File:</label>
-        <input type="file" id="file" name="file" accept=".glb" required>
+        <div class="file-upload-container">
+            <label for="objFile">Select OBJ File:</label>
+            <input type="file" id="objFile" name="objFile" accept=".obj" required>
+            
+            <label for="mtlFile">Select MTL File (optional):</label>
+            <input type="file" id="mtlFile" name="mtlFile" accept=".mtl">
+        </div>
         <input type="submit" value="Upload">
     </form>
 

@@ -1,25 +1,48 @@
 import * as THREE from "three";
-import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { saveJobToDB } from "./saveJobtoDB.js"; // Keep this import only once
+import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
+import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
+import { saveJobToDB } from "./saveJobtoDB.js";
 
 const scene = new THREE.Scene();
-const loader = new GLTFLoader();
+const loader = new OBJLoader();
 let components = [];
 let filters = new Set();
 
 // Function to load 3D model
-function loadModel(fileUrl) {
-  loader.load(
-    fileUrl,
-    (gltf) => {
-      console.log("Model loaded successfully.");
-      const model = gltf.scene;
-      scene.add(model);
+function loadModel(objUrl, mtlUrl) {
+  if (mtlUrl) {
+    // If MTL file exists, load it first
+    const mtlLoader = new MTLLoader();
+    mtlLoader.load(mtlUrl, (materials) => {
+      materials.preload();
+      
+      const loader = new OBJLoader();
+      loader.setMaterials(materials);
+      
+      loadOBJFile(loader, objUrl);
+    }, undefined, (error) => {
+      console.error('Error loading MTL:', error);
+      // Fallback to loading without materials
+      loadOBJFile(new OBJLoader(), objUrl);
+    });
+  } else {
+    // Load OBJ without materials
+    loadOBJFile(new OBJLoader(), objUrl);
+  }
+}
 
-      model.children.forEach((child) => {
-        let name = child.name;
-        createComponentBox(name);
-        filters.add(name.slice(0, 3));
+function loadOBJFile(loader, objUrl) {
+  loader.load(
+    objUrl,
+    (obj) => {
+      console.log("Model loaded successfully.");
+      scene.add(obj);
+
+      obj.traverse((child) => {
+        if (child.isMesh && child.name) {
+          createComponentBox(child.name);
+          filters.add(child.name.slice(0, 3));
+        }
       });
       grayOutIsStatic();
       createFilterButtons();
@@ -28,7 +51,8 @@ function loadModel(fileUrl) {
       console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
     },
     (error) => {
-      console.error("An error happened", error);
+      console.error("Error loading OBJ:", error);
+      alert("Error loading 3D model. Please check console for details.");
     }
   );
 }
@@ -266,10 +290,12 @@ function createJob() {
   const jobDescription = document.getElementById("description").value;
   const allBoxes = document.querySelectorAll(".component-box");
 
-  // Assuming fileUrl is available in the URL parameters after upload
-  const fileUrl = new URLSearchParams(window.location.search).get("fileUrl");
+  // Get both OBJ and MTL URLs from parameters
+  const params = new URLSearchParams(window.location.search);
+  const objUrl = params.get("objUrl");
+  const mtlUrl = params.get("mtlUrl");
 
-  if (!jobTitle || !jobUnit || !jobDescription || !fileUrl) {
+  if (!jobTitle || !jobUnit || !jobDescription || !objUrl) {
     alert("Please fill all the fields and upload a 3D file.");
     return;
   }
@@ -316,12 +342,14 @@ function createJob() {
     description: jobDescription,
     allComponents: components,
     isComplete: false,
-    model: fileUrl,
+    model: {
+      objUrl: objUrl,
+      mtlUrl: mtlUrl || null
+    }
   };
 
   console.log("Job created:", job);
 
-  //Save job to the database
   saveJobToDB(job)
     .then(() => {
       document.querySelector(".job-saved-layer").style.display = "flex";
@@ -337,12 +365,24 @@ document.querySelector(".save-button").addEventListener("click", createJob);
 
 // Event listeners
 document.addEventListener("DOMContentLoaded", () => {
-  const fileUrl = new URLSearchParams(window.location.search).get("fileUrl");
-  if (fileUrl) {
-    document.getElementById(
-      "fileInfo"
-    ).innerHTML = `File uploaded successfully! <br> File URL: <a href="${fileUrl}" target="_blank">${fileUrl}</a>`;
-    loadModel(fileUrl);
+  const params = new URLSearchParams(window.location.search);
+  const objUrl = params.get("objUrl");
+  const mtlUrl = params.get("mtlUrl");
+
+  if (objUrl) {
+    let fileInfo = `OBJ File: <a href="${objUrl}" target="_blank">${objUrl}</a>`;
+    if (mtlUrl) {
+      fileInfo += `<br>MTL File: <a href="${mtlUrl}" target="_blank">${mtlUrl}</a>`;
+    }
+    document.getElementById("fileInfo").innerHTML = `Files uploaded successfully! <br>${fileInfo}`;
+
+    // Add this right before loadModel is called
+console.log("Attempting to load model from URL:", objUrl);
+if (mtlUrl) {
+    console.log("With materials from URL:", mtlUrl);
+}
+    
+    loadModel(objUrl, mtlUrl);
   } else {
     document.getElementById("fileInfo").innerHTML = "No file uploaded.";
   }

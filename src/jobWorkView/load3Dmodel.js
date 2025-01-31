@@ -1,288 +1,154 @@
-import * as THREE from "three";
-import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+import * as THREE from 'three';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-export function load3DModel(modelUrl, containerSelector) {
+export function load3DModel(modelUrls, containerSelector) {
+  console.log('Starting model load with:', { modelUrls, containerSelector });
+  
   const container = document.querySelector(containerSelector);
   if (!container) {
-    console.error(`Container with selector '${containerSelector}' not found.`);
+    console.error(`Container not found: ${containerSelector}`);
     return;
   }
 
-  // Clear container first
-  container.innerHTML = "";
-  container.style.position = 'relative';
-
-  // Create component controls
-  const controlsContainer = document.createElement('div');
-  controlsContainer.className = 'component-controls';
-  
-  // Create main dropdown
-  const mainDropdown = document.createElement('select');
-  mainDropdown.className = 'filter-dropdown';
-  mainDropdown.innerHTML = '<option value="all">All Components</option>';
-  
-  // Create prefix dropdown
-  const prefixDropdown = document.createElement('select');
-  prefixDropdown.className = 'filter-dropdown';
-  prefixDropdown.innerHTML = '<option value="all">All Prefixes</option>';
-  
-  // Create visibility toggle
-  const visibilityToggle = document.createElement('label');
-  visibilityToggle.className = 'visibility-toggle';
-  visibilityToggle.innerHTML = `
-    <input type="checkbox" checked>
-    <span>Visible</span>
-  `;
-  
-  controlsContainer.appendChild(prefixDropdown);
-  controlsContainer.appendChild(mainDropdown);
-  controlsContainer.appendChild(visibilityToggle);
-
-  // Create name display overlay
-  const nameDisplay = document.createElement('div');
-  nameDisplay.style.position = 'absolute';
-  nameDisplay.style.top = '10px';
-  nameDisplay.style.left = '10px';
-  nameDisplay.style.padding = '5px 10px';
-  nameDisplay.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-  nameDisplay.style.color = 'white';
-  nameDisplay.style.fontFamily = 'Arial, sans-serif';
-  nameDisplay.style.fontSize = '14px';
-  nameDisplay.style.borderRadius = '4px';
-  nameDisplay.style.display = 'none';
+  if (!modelUrls || !modelUrls.objUrl) {
+    console.error('Invalid model URLs:', modelUrls);
+    return;
+  }
 
   // Three.js setup
   const scene = new THREE.Scene();
+  scene.background = new THREE.Color(0xf0f0f0);
+  
   const camera = new THREE.PerspectiveCamera(
     75,
     container.clientWidth / container.clientHeight,
     0.1,
     1000
   );
+  camera.position.set(5, 5, 5);
 
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setSize(container.clientWidth, container.clientHeight);
-
-  // Add elements in correct order
   container.appendChild(renderer.domElement);
-  container.appendChild(nameDisplay);
-  container.appendChild(controlsContainer);
 
-  // Lights setup
-  const ambientLight = new THREE.AmbientLight(0xffffff, 2.5);
-  scene.add(ambientLight);
-
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0xaaaaaa, 1.5);
-  hemiLight.position.set(0, 50, 0);
-  scene.add(hemiLight);
-
-  const directionalLight1 = new THREE.DirectionalLight(0xffffff, 2);
-  directionalLight1.position.set(10, 10, 10);
-  directionalLight1.target.position.set(0, 0, 0);
-  scene.add(directionalLight1);
-  scene.add(directionalLight1.target);
-
-  const directionalLight2 = new THREE.DirectionalLight(0xffffff, 2);
-  directionalLight2.position.set(-10, 10, -10);
-  directionalLight2.target.position.set(0, 0, 0);
-  scene.add(directionalLight2);
-  scene.add(directionalLight2.target);
-
-  const directionalLightBottom = new THREE.DirectionalLight(0xffffff, 2);
-  directionalLightBottom.position.set(0, -10, 0);
-  directionalLightBottom.target.position.set(0, 0, 0);
-  scene.add(directionalLightBottom);
-  scene.add(directionalLightBottom.target);
-
-  // Orbit Controls
+  // Add controls
   const controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
-  controls.minDistance = 1;
+  controls.minDistance = 0.1;
   controls.maxDistance = 50;
 
-  // Component management
-  const componentMap = new Map();
-  const prefixMap = new Map();
+  // Lights setup
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  scene.add(ambientLight);
 
-  const getPrefix = (name) => {
-    return (name || "").substring(0, 3).toLowerCase();
-  };
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+  directionalLight.position.set(5, 5, 5);
+  scene.add(directionalLight);
 
-  const updateDropdowns = (components) => {
-    mainDropdown.innerHTML = '<option value="all">All Components</option>';
-    prefixDropdown.innerHTML = '<option value="all">All Prefixes</option>';
-
-    const prefixes = new Set([...prefixMap.keys()]);
-    prefixes.forEach(prefix => {
-      const option = document.createElement('option');
-      option.value = prefix;
-      option.textContent = prefix.toUpperCase();
-      prefixDropdown.appendChild(option);
-    });
-
-    components.forEach(component => {
-      const option = document.createElement('option');
-      option.value = component.name;
-      option.textContent = component.name;
-      mainDropdown.appendChild(option);
-    });
-  };
-
-  const toggleVisibility = (component, visible) => {
-    if (component) {
-      component.visible = visible;
+  function loadObj(materials = null) {
+    const objLoader = new OBJLoader();
+    if (materials) {
+      objLoader.setMaterials(materials);
     }
-  };
 
-  // Event listeners
-  prefixDropdown.addEventListener('change', (e) => {
-    const prefix = e.target.value;
-    const components = prefix === 'all' ? 
-      [...componentMap.values()] : 
-      [...prefixMap.get(prefix) || []];
-    
-    mainDropdown.innerHTML = '<option value="all">All Components</option>';
-    components.forEach(component => {
-      const option = document.createElement('option');
-      option.value = component.name;
-      option.textContent = component.name;
-      mainDropdown.appendChild(option);
-    });
-  });
-
-  mainDropdown.addEventListener('change', (e) => {
-    const componentName = e.target.value;
-    const component = componentMap.get(componentName);
-    
-    if (component) {
-      visibilityToggle.querySelector('input').checked = component.visible;
-    }
-  });
-
-  visibilityToggle.querySelector('input').addEventListener('change', (e) => {
-    const componentName = mainDropdown.value;
-    if (componentName === 'all') {
-      const prefix = prefixDropdown.value;
-      const components = prefix === 'all' ? 
-        [...componentMap.values()] : 
-        [...prefixMap.get(prefix) || []];
-      
-      components.forEach(component => {
-        toggleVisibility(component, e.target.checked);
-      });
-    } else {
-      const component = componentMap.get(componentName);
-      toggleVisibility(component, e.target.checked);
-    }
-  });
-
-  // Raycaster setup
-  const raycaster = new THREE.Raycaster();
-  const mouse = new THREE.Vector2();
-  let hoveredObject = null;
-  let originalMaterials = new Map();
-  let interactiveMeshes = [];
-
-  // Mouse move event listener
-  container.addEventListener("mousemove", (event) => {
-    const rect = container.getBoundingClientRect();
-    mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
-    mouse.y = -((event.clientY - rect.top) / container.clientHeight) * 2 + 1;
-
-    scene.updateMatrixWorld();
-    raycaster.setFromCamera(mouse, camera);
-
-    const intersects = raycaster.intersectObjects(interactiveMeshes, false);
-
-    if (intersects.length > 0) {
-      const firstIntersectedObject = intersects[0].object;
-
-      if (hoveredObject !== firstIntersectedObject) {
-        if (hoveredObject && originalMaterials.has(hoveredObject)) {
-          hoveredObject.material = originalMaterials.get(hoveredObject).clone();
-        }
-
-        hoveredObject = firstIntersectedObject;
-        if (!originalMaterials.has(hoveredObject)) {
-          originalMaterials.set(hoveredObject, hoveredObject.material.clone());
-        }
-
-        hoveredObject.material = originalMaterials.get(hoveredObject).clone();
-        hoveredObject.material.color.set(0xff0000);
-
-        nameDisplay.textContent = hoveredObject.name || 'Unnamed Component';
-        nameDisplay.style.display = 'block';
-      }
-    } else {
-      if (hoveredObject) {
-        hoveredObject.material = originalMaterials.get(hoveredObject).clone();
-        hoveredObject = null;
-      }
-      nameDisplay.style.display = 'none';
-    }
-  });
-
-  // Load model
-  const loader = new GLTFLoader();
-  loader.load(
-    modelUrl,
-    (gltf) => {
-      const model = gltf.scene;
-      scene.add(model);
-      model.position.set(0, 0, 0);
-      model.scale.set(1, 1, 1);
-
-      model.traverse((child) => {
-        if (child.isMesh) {
-          child.material = child.material.clone();
-          interactiveMeshes.push(child);
-          
-          if (!child.name && child.parent) {
-            child.name = child.parent.name;
-          }
-
-          if (child.name) {
-            componentMap.set(child.name, child);
-            
-            const prefix = getPrefix(child.name);
-            if (!prefixMap.has(prefix)) {
-              prefixMap.set(prefix, new Set());
-            }
-            prefixMap.get(prefix).add(child);
-          }
-        }
-      });
-
-      updateDropdowns([...componentMap.values()]);
-
-      // Animation loop
-      const animate = function () {
-        requestAnimationFrame(animate);
+    objLoader.load(
+      modelUrls.objUrl,
+      (object) => {
+        console.log('OBJ loaded successfully');
+        scene.add(object);
+        
+        // Center and scale object
+        const box = new THREE.Box3().setFromObject(object);
+        const center = box.getCenter(new THREE.Vector3());
+        const size = box.getSize(new THREE.Vector3());
+        
+        object.position.sub(center);
+        
+        // Adjust camera based on object size
+        const maxDim = Math.max(size.x, size.y, size.z);
+        camera.position.set(maxDim * 2, maxDim * 2, maxDim * 2);
+        camera.lookAt(0, 0, 0);
+        
         controls.update();
-        renderer.render(scene, camera);
-      };
-      animate();
-    },
-    (xhr) => {
-      console.log((xhr.loaded / xhr.total) * 100 + "% loaded");
-    },
-    (error) => {
-      console.error("Error loading model:", error);
-    }
-  );
+      },
+      (xhr) => {
+        if (xhr.lengthComputable) {
+          const percentComplete = (xhr.loaded / xhr.total) * 100;
+          console.log('OBJ ' + Math.round(percentComplete) + '% loaded');
+        }
+      },
+      (error) => {
+        console.error('OBJ load error:', error);
+      }
+    );
+  }
 
-  camera.position.z = 8;
+  // Start loading process
+  if (modelUrls.mtlUrl) {
+    console.log('Loading with MTL:', modelUrls.mtlUrl);
+    const mtlLoader = new MTLLoader();
+    
+    // Don't set the base path for the MTL loader
+    mtlLoader.load(
+      modelUrls.mtlUrl,
+      (materials) => {
+        console.log('MTL loaded successfully');
+        materials.preload();
+        loadObj(materials);
+      },
+      (xhr) => {
+        if (xhr.lengthComputable) {
+          const percentComplete = (xhr.loaded / xhr.total) * 100;
+          console.log('MTL ' + Math.round(percentComplete) + '% loaded');
+        }
+      },
+      (error) => {
+        console.error('MTL load error:', error);
+        // Fallback to loading without materials
+        loadObj(null);
+      }
+    );
+  } else {
+    console.log('Loading without MTL');
+    loadObj(null);
+  }
 
-  // Resize handler
-  window.addEventListener("resize", () => {
-    const width = container.clientWidth;
-    const height = container.clientHeight;
+  // Animation loop
+  function animate() {
+    requestAnimationFrame(animate);
+    if (controls) controls.update();
+    renderer.render(scene, camera);
+  }
+  animate();
 
-    camera.aspect = width / height;
+  // Handle window resize
+  function onWindowResize() {
+    camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
+    renderer.setSize(container.clientWidth, container.clientHeight);
+  }
 
-    renderer.setSize(width, height);
-  });
+  window.addEventListener('resize', onWindowResize);
+
+  // Cleanup function
+  return () => {
+    window.removeEventListener('resize', onWindowResize);
+    scene.traverse(object => {
+      if (object.geometry) object.geometry.dispose();
+      if (object.material) {
+        if (Array.isArray(object.material)) {
+          object.material.forEach(material => material.dispose());
+        } else {
+          object.material.dispose();
+        }
+      }
+    });
+    renderer.dispose();
+    if (container.contains(renderer.domElement)) {
+      container.removeChild(renderer.domElement);
+    }
+  };
 }
