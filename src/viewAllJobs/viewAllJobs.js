@@ -1,6 +1,6 @@
 import "./viewAllJobs.css";
 
-const API_URL = "https://143d-2603-8001-1b00-430d-4d6e-86d2-9687-8561.ngrok-free.app";
+const API_URL = "http://localhost:3000";
 
 async function fetchJobs() {
   try {

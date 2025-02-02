@@ -10,9 +10,41 @@ export function load3DModel(modelUrls, containerSelector) {
     return;
   }
 
+  // Create UI overlay
+  const uiOverlay = document.createElement('div');
+  uiOverlay.style.position = 'absolute';
+  uiOverlay.style.top = '20px';
+  uiOverlay.style.left = '20px';
+  uiOverlay.style.zIndex = '1000';
+  uiOverlay.style.color = 'white';
+  uiOverlay.style.fontFamily = 'Arial, sans-serif';
+  container.style.position = 'relative';
+  container.appendChild(uiOverlay);
+
+  // Create component name display
+  const componentNameDisplay = document.createElement('div');
+  componentNameDisplay.style.marginBottom = '10px';
+  componentNameDisplay.style.fontSize = '16px';
+  componentNameDisplay.style.fontWeight = 'bold';
+  uiOverlay.appendChild(componentNameDisplay);
+
+  // Create filter dropdown container
+  const filterContainer = document.createElement('div');
+  filterContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+  filterContainer.style.padding = '10px';
+  filterContainer.style.borderRadius = '5px';
+  uiOverlay.appendChild(filterContainer);
+
+  // Create filter select
+  const filterSelect = document.createElement('select');
+  filterSelect.style.width = '200px';
+  filterSelect.style.padding = '5px';
+  filterSelect.style.marginBottom = '10px';
+  filterContainer.appendChild(filterSelect);
+
   // Three.js setup
   const scene = new THREE.Scene();
-  scene.background = new THREE.Color(0xf0f0f0);
+  scene.background = new THREE.Color(0x000000);
   
   const camera = new THREE.PerspectiveCamera(
     75,
@@ -30,8 +62,8 @@ export function load3DModel(modelUrls, containerSelector) {
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
 
-  // Improved lighting setup
-  const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+  // Lighting setup
+  const ambientLight = new THREE.AmbientLight(0xffffff, 1);
   scene.add(ambientLight);
 
   const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -42,11 +74,45 @@ export function load3DModel(modelUrls, containerSelector) {
   backLight.position.set(-1, 1, -1);
   scene.add(backLight);
 
-  // Improved raycasting setup
+  // Raycasting setup
   const raycaster = new THREE.Raycaster();
   const mouse = new THREE.Vector2();
   let hoveredMesh = null;
-  let meshes = new Set(); // Using Set to avoid duplicates
+  let meshes = new Set();
+  let componentGroups = new Map(); // Store components by prefix
+
+  function updateFilterDropdown() {
+    // Clear existing options
+    filterSelect.innerHTML = '<option value="">Show All Components</option>';
+    
+    // Get unique prefixes (first 3 characters)
+    const prefixes = new Set();
+    componentGroups.forEach((meshes, name) => {
+      const prefix = name.slice(0, 3).toLowerCase();
+      prefixes.add(prefix);
+    });
+
+    // Add options for each prefix
+    [...prefixes].sort().forEach(prefix => {
+      const option = document.createElement('option');
+      option.value = prefix;
+      option.textContent = prefix.toUpperCase();
+      filterSelect.appendChild(option);
+    });
+  }
+
+  filterSelect.addEventListener('change', (event) => {
+    const selectedPrefix = event.target.value.toLowerCase();
+    
+    componentGroups.forEach((meshes, name) => {
+      const prefix = name.slice(0, 3).toLowerCase();
+      const visible = !selectedPrefix || prefix === selectedPrefix;
+      
+      meshes.forEach(mesh => {
+        mesh.visible = visible;
+      });
+    });
+  });
 
   function loadObj(materials = null) {
     const objLoader = new OBJLoader();
@@ -59,10 +125,9 @@ export function load3DModel(modelUrls, containerSelector) {
       (object) => {
         console.log('OBJ loaded successfully');
         
-        // Improved mesh processing
         object.traverse((child) => {
           if (child.isMesh) {
-            // Generate unique materials for each mesh
+            // Generate unique materials
             if (!child.material) {
               child.material = new THREE.MeshPhongMaterial({
                 color: new THREE.Color(Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5, Math.random() * 0.5 + 0.5),
@@ -70,22 +135,30 @@ export function load3DModel(modelUrls, containerSelector) {
               });
             }
             
-            // Ensure each mesh has its own unique material instance
+            // Clone materials
             if (Array.isArray(child.material)) {
               child.material = child.material.map(mat => mat.clone());
             } else {
               child.material = child.material.clone();
             }
 
-            // Store original material state
+            // Store original material
             child.userData.originalMaterial = Array.isArray(child.material) ? 
               child.material.map(m => m.clone()) : 
               child.material.clone();
 
-            // Add to interactive meshes set
+            // Get component name from mesh name or parent name
+            const componentName = child.parent.name || child.name || 'Unknown Component';
+            child.userData.componentName = componentName;
+
+            // Group components
+            if (!componentGroups.has(componentName)) {
+              componentGroups.set(componentName, new Set());
+            }
+            componentGroups.get(componentName).add(child);
+
             meshes.add(child);
             
-            // Ensure proper geometry attributes
             if (!child.geometry.getAttribute('normal')) {
               child.geometry.computeVertexNormals();
             }
@@ -109,6 +182,9 @@ export function load3DModel(modelUrls, containerSelector) {
         camera.lookAt(0, 0, 0);
         
         controls.update();
+        
+        // Update filter dropdown after loading
+        updateFilterDropdown();
       },
       (xhr) => {
         const percentComplete = xhr.loaded / xhr.total * 100;
@@ -120,7 +196,6 @@ export function load3DModel(modelUrls, containerSelector) {
     );
   }
 
-  // Improved mouse move handler
   function onMouseMove(event) {
     const rect = container.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
@@ -140,9 +215,10 @@ export function load3DModel(modelUrls, containerSelector) {
         hoveredMesh.material.color.copy(hoveredMesh.userData.originalMaterial.color);
       }
       hoveredMesh = null;
+      componentNameDisplay.textContent = '';
     }
 
-    // Set new hover with single mesh selection
+    // Set new hover
     if (intersects.length > 0) {
       hoveredMesh = intersects[0].object;
       const highlightColor = new THREE.Color(0xff0000);
@@ -154,6 +230,9 @@ export function load3DModel(modelUrls, containerSelector) {
       } else {
         hoveredMesh.material.color.copy(highlightColor);
       }
+
+      // Display component name
+      componentNameDisplay.textContent = hoveredMesh.userData.componentName;
     }
   }
 
@@ -178,7 +257,6 @@ export function load3DModel(modelUrls, containerSelector) {
     loadObj(null);
   }
 
-  // Animation loop
   function animate() {
     requestAnimationFrame(animate);
     controls.update();
@@ -186,7 +264,6 @@ export function load3DModel(modelUrls, containerSelector) {
   }
   animate();
 
-  // Handle window resize
   function onWindowResize() {
     camera.aspect = container.clientWidth / container.clientHeight;
     camera.updateProjectionMatrix();
@@ -195,10 +272,10 @@ export function load3DModel(modelUrls, containerSelector) {
 
   window.addEventListener('resize', onWindowResize);
 
-  // Cleanup function
   return () => {
     window.removeEventListener('resize', onWindowResize);
     container.removeEventListener('mousemove', onMouseMove);
+    container.removeChild(uiOverlay);
     meshes.forEach(mesh => {
       if (mesh.geometry) mesh.geometry.dispose();
       if (Array.isArray(mesh.material)) {
