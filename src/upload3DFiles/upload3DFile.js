@@ -1,5 +1,6 @@
 // upload3DFile.js
 const uploadForm = document.getElementById("uploadForm");
+const API_URL = "http://localhost:3000";
 
 uploadForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -7,7 +8,7 @@ uploadForm.addEventListener("submit", async (event) => {
   const formData = new FormData(uploadForm);
 
   try {
-    const response = await fetch("/upload3DFile", {
+    const response = await fetch(`${API_URL}/upload3DFile`, {
       method: "POST",
       body: formData,
     });
@@ -16,8 +17,9 @@ uploadForm.addEventListener("submit", async (event) => {
 
     if (response.ok) {
       // Pass URLs as separate parameters
-      const redirectUrl = `/createJob.html?objUrl=${encodeURIComponent(data.objUrl)}` + 
-        (data.mtlUrl ? `&mtlUrl=${encodeURIComponent(data.mtlUrl)}` : '');
+      const redirectUrl = `/createJob.html?objUrl=${encodeURIComponent(data.objUrl)}${
+        data.mtlUrl ? `&mtlUrl=${encodeURIComponent(data.mtlUrl)}` : ''
+      }`;
 
       alert("Files uploaded successfully!");
       window.location.href = redirectUrl;

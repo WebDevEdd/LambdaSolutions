@@ -17,15 +17,52 @@
     color: var(--text-color);
     line-height: 1.6;
     margin: 0;
-    padding: 20px;
+    padding: 0;
   }
-  
-  .left-container {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 20px;
+  .job-saved-layer{
+    display: none;
+}
+
+.main-container {
+  display: flex;
+  height: 100vh; /* Full height */
+  overflow: hidden; /* Prevent scrolling on the whole page */
+}
+  .right-container{
+    width: 50%;
+    height: 100vh;
   }
+/* Modern scrollbar for .left-container */
+.left-container {
+  width: 50%;
+  padding: 20px;
+  overflow-y: auto; /* Enable scrolling */
+  height: 100vh; /* Full height */
+  scrollbar-width: thin; /* Works in Firefox */
+  scrollbar-color: var(--primary-color) var(--background-color); /* Track and thumb color */
+}
+
+/* Webkit-based browsers (Chrome, Edge, Safari) */
+.left-container::-webkit-scrollbar {
+  width: 8px; /* Slim scrollbar */
+}
+
+.left-container::-webkit-scrollbar-track {
+  background: var(--background-color); /* Track color */
+  border-radius: 10px;
+}
+
+.left-container::-webkit-scrollbar-thumb {
+  background: var(--primary-color); /* Thumb color */
+  border-radius: 10px;
+  transition: var(--transition);
+}
+
+.left-container::-webkit-scrollbar-thumb:hover {
+  background: #2980b9; /* Darker shade on hover */
+}
   
+
   h1, h2, h3, h4 {
     margin-bottom: 20px;
     color: var(--primary-color);

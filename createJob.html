@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="/src/createJob/createJob.css">
 </head>
 <body>
+  <div class="main-container">
+
+  
     <div class="left-container">
         <h1>Create Job</h1>
         
@@ -39,10 +42,16 @@
           <!--<div class="component-box" data-filter="hrd"><input type="checkbox" class="component-checkbox" data-component="hrd_fastener1_wir-1000"><h3>hrd_fastener1_wir-1000</h3><label><input type="checkbox" class="form-input"> Is Static</label><label><input type="checkbox" class="form-input"> Is Installed</label><h4>Required Materials</h4><div class="materials-container"><input type="text" placeholder="enter material..." class="new-input" value="asgdf"></div><button class="add">Add Material</button><h4>Steps</h4><div class="steps-container"><input type="text" placeholder="Step 1..." class="new-input" value="asfh"></div><button class="add">Add Step</button></div>-->
         </div> 
       </div>
-    <p id="fileInfo"></p>
+      <div class="right-container">
+        
+      </div>
+
+
+    
 
 
     <div class="job-saved-layer">
+      <p id="fileInfo"></p>
       <div class="job-saved-window">
         <div class="job-saved-container">
           <h1>
@@ -58,5 +67,7 @@
     </div>
     <script src="/src/createJob/createJob.js" type="module"></script>
     <script type="module" src="/src/createJob/saveJobtoDB.js"></script>
+
+  </div>
 </body>
 </html>

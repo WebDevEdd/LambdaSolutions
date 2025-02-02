@@ -2,11 +2,15 @@ import * as THREE from "three";
 import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
 import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
 import { saveJobToDB } from "./saveJobtoDB.js";
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 const scene = new THREE.Scene();
 const loader = new OBJLoader();
 let components = [];
 let filters = new Set();
+const camera = new THREE.PerspectiveCamera(25, window.innerWidth / 2, 0.1, 1000);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+let controls;
 
 // Function to load 3D model
 function loadModel(objUrl, mtlUrl) {
@@ -30,12 +34,89 @@ function loadModel(objUrl, mtlUrl) {
     loadOBJFile(new OBJLoader(), objUrl);
   }
 }
+// Initialize the 3D scene setup
+function initScene() {
+  // Get initial container size
+  const container = document.querySelector('.right-container');
+  const containerWidth = container.clientWidth;
+  const containerHeight = container.clientHeight;
 
+  // Setup renderer with correct initial size
+  renderer.setSize(containerWidth, containerHeight);
+  container.appendChild(renderer.domElement);
+  renderer.setClearColor(0x000000);
+
+  // Setup camera with correct aspect ratio
+  camera.aspect = containerWidth / containerHeight;
+  camera.updateProjectionMatrix();
+  camera.position.set(-10, 10, 20);
+  camera.lookAt(0, 0, 0);
+
+  // Add lights to the scene
+  const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+  scene.add(ambientLight);
+
+  // Add directional lights from multiple angles
+  const directionalLight1 = new THREE.DirectionalLight(0xffffff, 0.8);
+  directionalLight1.position.set(10, 10, 10);
+  scene.add(directionalLight1);
+
+  const directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.5);
+  directionalLight2.position.set(-10, 10, -10);
+  scene.add(directionalLight2);
+
+  // Setup orbit controls
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
+
+  // Start animation loop
+  animate();
+
+  // Handle window resize
+  window.addEventListener('resize', onWindowResize, false);
+}
+
+// Animation loop
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+
+// Handle window resize
+function onWindowResize() {
+  const container = document.querySelector('.right-container');
+  const containerWidth = container.clientWidth;
+  const containerHeight = container.clientHeight;
+  
+  camera.aspect = containerWidth / containerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(containerWidth, containerHeight);
+}
+
+// Modify your existing loadOBJFile function to center and scale the model
 function loadOBJFile(loader, objUrl) {
   loader.load(
     objUrl,
     (obj) => {
       console.log("Model loaded successfully.");
+      
+      // Center the object
+      const box = new THREE.Box3().setFromObject(obj);
+      const center = box.getCenter(new THREE.Vector3());
+      
+      // Reset object position
+      obj.position.x = -center.x;
+      obj.position.y = -center.y;
+      obj.position.z = -center.z;
+      
+      // Scale object to fit view
+      const size = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+      const scale = 8 / maxDim;
+      obj.scale.multiplyScalar(scale);
+      
       scene.add(obj);
 
       obj.traverse((child) => {
@@ -400,3 +481,4 @@ if (mtlUrl) {
 });
 
 console.log(components);
+initScene();
