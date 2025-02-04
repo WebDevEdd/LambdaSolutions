@@ -230,3 +230,56 @@ textarea:focus {
     justify-content: center;
     flex-direction: column;
   }
+
+  .selection-controls {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    padding: 15px;
+    border-radius: 8px;
+    box-shadow: var(--box-shadow);
+    z-index: 1000;
+    pointer-events: auto; /* Ensure clicks are captured */
+    backdrop-filter: blur(5px); /* Optional: adds a slight blur effect behind the controls */
+    background-color: rgba(255, 255, 255, 0.95); /* Slightly transparent background */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  #selectionCounter {
+    color: var(--text-color);
+    font-weight: 500;
+    margin-bottom: 10px;
+  }
+  
+  .selected-parts-list {
+    background-color: #f8f9fa;
+    border-radius: 6px;
+    padding: 10px;
+    margin: 10px 0;
+  }
+  
+  .selected-parts-list h4 {
+    margin: 0 0 10px 0;
+    color: var(--text-color);
+    font-size: 0.9em;
+  }
+  
+  .selected-parts-list ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+  
+  .selected-parts-list li {
+    font-size: 0.85em;
+    padding: 4px 8px;
+    margin: 2px 0;
+    background: #fff;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+  }
