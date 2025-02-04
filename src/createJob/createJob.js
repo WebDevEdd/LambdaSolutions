@@ -277,42 +277,73 @@ function createComponentFromSelection() {
   let box = document.createElement("div");
   box.classList.add("component-box");
   
-  // Create header container for name and remove button
-  let headerContainer = document.createElement("div");
-  headerContainer.classList.add("component-header");
-  
-  let removeBtn = document.createElement("button");
-  removeBtn.classList.add("remove-component-btn");
-  removeBtn.innerHTML = '&times;'; // × symbol
-  removeBtn.addEventListener('click', () => removeComponent(box));
+ // Create header container
+ let headerContainer = document.createElement("div");
+ headerContainer.classList.add("component-header");
+ 
+ // Create checkbox
+ let checkbox = document.createElement("input");
+ checkbox.type = "checkbox";
+ checkbox.classList.add("component-checkbox");
+ 
+ // Create component name
+ let componentNameElement = document.createElement("h3");
+ componentNameElement.textContent = componentName;
+ 
+ // Create remove button
+ let removeBtn = document.createElement("button");
+ removeBtn.classList.add("remove-component-btn");
+ removeBtn.innerHTML = '&times;'; // × symbol
+ removeBtn.addEventListener('click', () => removeComponent(box));
+ 
+ // Add all elements to header
+ headerContainer.appendChild(checkbox);
+ headerContainer.appendChild(componentNameElement);
+ headerContainer.appendChild(removeBtn);
+ box.appendChild(headerContainer);
 
-  // Component name and header
-  let componentNameElement = document.createElement("h3");
-  componentNameElement.textContent = componentName;
-  
-  headerContainer.appendChild(componentNameElement);
-  headerContainer.appendChild(removeBtn);
-  box.appendChild(headerContainer);
+  // Create collapsible parts list section
+  let partsSection = document.createElement("div");
+  partsSection.classList.add("parts-section");
 
-  // Selected parts list
+  let partsHeader = document.createElement("div");
+  partsHeader.classList.add("parts-header");
+  partsHeader.innerHTML = `
+    <span>Selected Parts (${selectedMeshNames.size})</span>
+    <button class="toggle-btn">▼</button>
+  `;
+
   let partsList = document.createElement("div");
-  partsList.classList.add("selected-parts-list");
-  let partsTitle = document.createElement("h4");
-  partsTitle.textContent = "Selected Parts:";
-  partsList.appendChild(partsTitle);
+  partsList.classList.add("parts-list");
+  partsList.style.maxHeight = "0";
+  partsList.style.overflow = "hidden";
   
-  let partNames = document.createElement("ul");
+  let partsUl = document.createElement("ul");
   selectedMeshNames.forEach(name => {
     let li = document.createElement("li");
     li.textContent = name;
-    partNames.appendChild(li);
+    partsUl.appendChild(li);
   });
-  partsList.appendChild(partNames);
-  box.appendChild(partsList);
+  partsList.appendChild(partsUl);
 
-  // Static input
-  let staticLabel = createLabeledCheckbox(" Is Static", "form-input");
-  box.appendChild(staticLabel);
+  // Add click handler for toggle
+  partsHeader.addEventListener('click', () => {
+    const isExpanded = partsList.style.maxHeight !== "0px";
+    const toggleBtn = partsHeader.querySelector('.toggle-btn');
+    if (isExpanded) {
+      partsList.style.maxHeight = "0";
+      toggleBtn.style.transform = "rotate(0deg)";
+    } else {
+      partsList.style.maxHeight = partsList.scrollHeight + "px";
+      toggleBtn.style.transform = "rotate(180deg)";
+    }
+  });
+
+  partsSection.appendChild(partsHeader);
+  partsSection.appendChild(partsList);
+  box.appendChild(partsSection);
+
+
 
   // Required materials section
   let materialsTitle = document.createElement("h4");
@@ -438,7 +469,7 @@ function createJob() {
     let materialsContainer = box.querySelector(".materials-container");
     let selectedParts = Array.from(box.querySelectorAll('.selected-parts-list li')).map(li => li.textContent);
 
-    let isStatic = box.querySelector("label").querySelector("input").checked;
+
     let componentName = box.querySelector("h3").textContent;
     
     let steps = Array.from(stepsContainer.querySelectorAll(".new-input"))
