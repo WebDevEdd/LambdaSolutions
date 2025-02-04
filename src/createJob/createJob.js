@@ -245,22 +245,87 @@ function onModelClick(event) {
   }
 }
 
-function updateSelectionCount() {
-  const counter = document.getElementById('selectionCounter');
-  if (counter) {
-    counter.textContent = `Selected parts: ${selectedMeshes.size}`;
+function createDropdownSection(title, initialContent = null, addButtonConfig = null) {
+  const section = document.createElement("div");
+  section.classList.add("parts-section");
+
+  // Create header
+  const header = document.createElement("div");
+  header.classList.add("parts-header");
+  header.innerHTML = `
+    <span>${title}</span>
+    <button class="toggle-btn">▼</button>
+  `;
+
+  // Create content container
+  const contentList = document.createElement("div");
+  contentList.classList.add("parts-list");
+  contentList.style.maxHeight = "0";
+  contentList.style.overflow = "hidden";
+
+  const ul = document.createElement("ul");
+  
+  // Add initial content if provided
+  if (initialContent) {
+    initialContent.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = item;
+      ul.appendChild(li);
+    });
   }
+
+  // Add button configuration if provided
+  if (addButtonConfig) {
+    const addBtn = document.createElement("button");
+    addBtn.classList.add("add-spec-btn");
+    addBtn.textContent = "+";
+    addBtn.addEventListener("click", () => {
+      const newInput = createInput(addButtonConfig.placeholder);
+      ul.appendChild(newInput);
+      newInput.focus();
+    });
+    contentList.appendChild(ul);
+    contentList.appendChild(addBtn);
+  } else {
+    contentList.appendChild(ul);
+  }
+
+  // Toggle dropdown functionality
+  header.addEventListener('click', () => {
+    const isExpanded = contentList.style.maxHeight !== "0px";
+    const toggleBtn = header.querySelector('.toggle-btn');
+    
+    if (isExpanded) {
+      contentList.style.maxHeight = "0";
+      toggleBtn.style.transform = "rotate(0deg)";
+    } else {
+      contentList.style.maxHeight = contentList.scrollHeight + "px";
+      toggleBtn.style.transform = "rotate(180deg)";
+    }
+  });
+
+  section.appendChild(header);
+  section.appendChild(contentList);
+  return section;
 }
 
-function removeComponent(componentBox) {
-  // Animate the removal
-  componentBox.style.transition = 'all 0.3s ease';
-  componentBox.style.opacity = '0';
-  componentBox.style.transform = 'scale(0.9)';
-  
-  setTimeout(() => {
-    componentBox.remove();
-  }, 300);
+function createInput(placeholder) {
+  const newInput = document.createElement("input");
+  newInput.type = "text";
+  newInput.placeholder = placeholder;
+  newInput.classList.add("new-input");
+
+  // Add enter key functionality
+  newInput.addEventListener("keypress", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const nextInput = createInput(placeholder);
+      newInput.parentNode.insertBefore(nextInput, newInput.nextSibling);
+      nextInput.focus();
+    }
+  });
+
+  return newInput;
 }
 
 function createComponentFromSelection() {
@@ -273,111 +338,79 @@ function createComponentFromSelection() {
   if (!componentName) return;
 
   const boxContainer = document.querySelector(".components-container");
-  
-  let box = document.createElement("div");
+  const box = document.createElement("div");
   box.classList.add("component-box");
-  
- // Create header container
- let headerContainer = document.createElement("div");
- headerContainer.classList.add("component-header");
- 
- // Create checkbox
- let checkbox = document.createElement("input");
- checkbox.type = "checkbox";
- checkbox.classList.add("component-checkbox");
- 
- // Create component name
- let componentNameElement = document.createElement("h3");
- componentNameElement.textContent = componentName;
- 
- // Create remove button
- let removeBtn = document.createElement("button");
- removeBtn.classList.add("remove-component-btn");
- removeBtn.innerHTML = '&times;'; // × symbol
- removeBtn.addEventListener('click', () => removeComponent(box));
- 
- // Add all elements to header
- headerContainer.appendChild(checkbox);
- headerContainer.appendChild(componentNameElement);
- headerContainer.appendChild(removeBtn);
- box.appendChild(headerContainer);
 
-  // Create collapsible parts list section
-  let partsSection = document.createElement("div");
-  partsSection.classList.add("parts-section");
+  // Create header
+  const headerContainer = document.createElement("div");
+  headerContainer.classList.add("component-header");
 
-  let partsHeader = document.createElement("div");
-  partsHeader.classList.add("parts-header");
-  partsHeader.innerHTML = `
-    <span>Selected Parts (${selectedMeshNames.size})</span>
-    <button class="toggle-btn">▼</button>
-  `;
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.classList.add("component-checkbox");
 
-  let partsList = document.createElement("div");
-  partsList.classList.add("parts-list");
-  partsList.style.maxHeight = "0";
-  partsList.style.overflow = "hidden";
-  
-  let partsUl = document.createElement("ul");
-  selectedMeshNames.forEach(name => {
-    let li = document.createElement("li");
-    li.textContent = name;
-    partsUl.appendChild(li);
-  });
-  partsList.appendChild(partsUl);
+  const componentNameElement = document.createElement("h3");
+  componentNameElement.textContent = componentName;
 
-  // Add click handler for toggle
-  partsHeader.addEventListener('click', () => {
-    const isExpanded = partsList.style.maxHeight !== "0px";
-    const toggleBtn = partsHeader.querySelector('.toggle-btn');
-    if (isExpanded) {
-      partsList.style.maxHeight = "0";
-      toggleBtn.style.transform = "rotate(0deg)";
-    } else {
-      partsList.style.maxHeight = partsList.scrollHeight + "px";
-      toggleBtn.style.transform = "rotate(180deg)";
-    }
-  });
+  const removeBtn = document.createElement("button");
+  removeBtn.classList.add("remove-component-btn");
+  removeBtn.innerHTML = '&times;';
+  removeBtn.addEventListener('click', () => removeComponent(box));
 
-  partsSection.appendChild(partsHeader);
-  partsSection.appendChild(partsList);
-  box.appendChild(partsSection);
+  headerContainer.appendChild(checkbox);
+  headerContainer.appendChild(componentNameElement);
+  headerContainer.appendChild(removeBtn);
+  box.appendChild(headerContainer);
 
+  // Create Parts dropdown
+  const partsDropdown = createDropdownSection(
+    "Parts", 
+    Array.from(selectedMeshNames)
+  );
+  box.appendChild(partsDropdown);
 
+  // Create Specs dropdown
+  const specsDropdown = createDropdownSection(
+    "Specs", 
+    null,
+    { placeholder: "Enter spec..." }
+  );
+  box.appendChild(specsDropdown);
 
-  // Required materials section
-  let materialsTitle = document.createElement("h4");
-  materialsTitle.textContent = "Required Materials";
-  let materialsContainer = document.createElement("div");
+  // Create Materials section
+  const materialsContainer = document.createElement("div");
   materialsContainer.classList.add("materials-container");
-  let materialsAddBtn = createButton("Add Material", "add");
+  const materialsTitle = document.createElement("h4");
+  materialsTitle.textContent = "Required Materials";
+  const materialsAddBtn = createButton("Add Material", "add");
+  
   box.appendChild(materialsTitle);
   box.appendChild(materialsContainer);
   box.appendChild(materialsAddBtn);
 
-  // Steps section
-  let stepsTitle = document.createElement("h4");
-  stepsTitle.textContent = "Steps";
-  let stepsContainer = document.createElement("div");
+  // Create Steps section
+  const stepsContainer = document.createElement("div");
   stepsContainer.classList.add("steps-container");
-  let stepsAddBtn = createButton("Add Step", "add");
+  const stepsTitle = document.createElement("h4");
+  stepsTitle.textContent = "Steps";
+  const stepsAddBtn = createButton("Add Step", "add");
+
   box.appendChild(stepsTitle);
   box.appendChild(stepsContainer);
   box.appendChild(stepsAddBtn);
 
-  // Add event listeners
+  // Add event listeners for materials and steps
   materialsAddBtn.addEventListener("click", () =>
-    addInput(materialsContainer, "enter material...")
+    addInput(materialsContainer, "Enter material...")
   );
   stepsAddBtn.addEventListener("click", () =>
     addInput(stepsContainer, `Step ${stepsContainer.childElementCount + 1}...`)
   );
 
   boxContainer.appendChild(box);
-
-  // Clear selections after creating component
   clearSelections();
 }
+
 
 function clearSelections() {
   selectedMeshes.forEach(mesh => {
@@ -394,16 +427,6 @@ function clearSelections() {
   updateSelectionCount();
 }
 
-function createLabeledCheckbox(labelText, inputClass) {
-  let label = document.createElement("label");
-  let input = document.createElement("input");
-  input.type = "checkbox";
-  input.classList.add(inputClass);
-  label.appendChild(input);
-  label.appendChild(document.createTextNode(labelText));
-  return label;
-}
-
 function createButton(text, className) {
   let button = document.createElement("button");
   button.textContent = text;
@@ -418,16 +441,110 @@ function addInput(container, placeholder) {
   newInput.classList.add("new-input");
 
   newInput.addEventListener("keypress", (event) => {
-    if (event.key === "Enter") {
-      event.preventDefault();
-      const nextInput = addInput(container, placeholder);
-      nextInput.focus();
-    }
+      if (event.key === "Enter") {
+          event.preventDefault();  // Prevent form submission or unexpected behavior
+          
+          let nextInput = addInput(container, placeholder);
+          nextInput.focus();  // Move focus to the new input
+      }
   });
 
   container.appendChild(newInput);
   return newInput;
 }
+
+// Add these functions to your createJob.js file
+
+// Initialize bulk action buttons
+document.getElementById('selectAll').addEventListener('click', () => {
+  const checkboxes = document.querySelectorAll('.component-checkbox');
+  const isAllSelected = Array.from(checkboxes).every(checkbox => checkbox.checked);
+  
+  checkboxes.forEach(checkbox => {
+      checkbox.checked = !isAllSelected;
+  });
+});
+
+document.getElementById('addMaterialToSelected').addEventListener('click', async () => {
+  const selectedComponents = document.querySelectorAll('.component-checkbox:checked');
+
+  if (selectedComponents.length === 0) {
+      alert('Please select at least one component first');
+      return;
+  }
+
+  let materialCount;
+  do {
+      materialCount = prompt('How many materials would you like to add?');
+      if (materialCount === null) return; // User cancelled
+      materialCount = parseInt(materialCount, 10);
+  } while (isNaN(materialCount) || materialCount <= 0);
+
+  let materials = [];
+  for (let i = 0; i < materialCount; i++) {
+      let material;
+      do {
+          material = prompt(`Enter material ${i + 1}:`).trim();
+      } while (!material);
+      materials.push(material);
+  }
+
+  selectedComponents.forEach(checkbox => {
+      const componentBox = checkbox.closest('.component-box');
+      const materialsContainer = componentBox.querySelector('.materials-container');
+
+      materials.forEach(material => {
+          const newInput = document.createElement('input');
+          newInput.type = 'text';
+          newInput.className = 'new-input';
+          newInput.value = material;
+          materialsContainer.appendChild(newInput);
+      });
+  });
+
+  alert(`${materialCount} materials added to selected components.`);
+});
+
+document.getElementById('addStepToSelected').addEventListener('click', async () => {
+  const selectedComponents = document.querySelectorAll('.component-checkbox:checked');
+
+  if (selectedComponents.length === 0) {
+      alert('Please select at least one component first');
+      return;
+  }
+
+  let stepCount;
+  do {
+      stepCount = prompt('How many steps would you like to add?');
+      if (stepCount === null) return; // User cancelled
+      stepCount = parseInt(stepCount, 10);
+  } while (isNaN(stepCount) || stepCount <= 0);
+
+  let steps = [];
+  for (let i = 0; i < stepCount; i++) {
+      let step;
+      do {
+          step = prompt(`Enter step ${i + 1}:`).trim();
+      } while (!step);
+      steps.push(step);
+  }
+
+  selectedComponents.forEach(checkbox => {
+      const componentBox = checkbox.closest('.component-box');
+      const stepsContainer = componentBox.querySelector('.steps-container');
+
+      steps.forEach(step => {
+          const newInput = document.createElement('input');
+          newInput.type = 'text';
+          newInput.className = 'new-input';
+          newInput.value = step;
+          stepsContainer.appendChild(newInput);
+      });
+  });
+
+  alert(`${stepCount} steps added to selected components.`);
+});
+
 
 function animate() {
   requestAnimationFrame(animate);

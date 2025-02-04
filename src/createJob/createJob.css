@@ -369,6 +369,8 @@ textarea:focus {
     border-radius: 6px;
     margin: 10px 0;
     overflow: hidden;
+    min-width: 250px;
+    width: 100%;
   }
   
   .parts-header {
@@ -506,3 +508,11 @@ textarea:focus {
   #clearSelectionsBtn:hover {
     background-color: #7f8c8d;
   }
+
+  .component-box .component-checkbox:checked {
+    background-color: var(--primary-color);
+}
+
+.component-box .component-checkbox:checked ~ h3 {
+    color: var(--primary-color);
+}
