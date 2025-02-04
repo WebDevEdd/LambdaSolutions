@@ -254,11 +254,10 @@ textarea:focus {
     margin-bottom: 10px;
   }
   
-  .selected-parts-list {
-    background-color: #f8f9fa;
-    border-radius: 6px;
-    padding: 10px;
-    margin: 10px 0;
+  .selected-parts-list h4 {
+    margin: 0 0 10px 0;
+    color: var(--text-color);
+    font-size: 0.9em;
   }
   
   .selected-parts-list h4 {
@@ -282,4 +281,49 @@ textarea:focus {
     background: #fff;
     border-radius: 4px;
     border: 1px solid var(--border-color);
+  }
+  .selection-controls button {
+    width: 100%;
+    margin-bottom: 8px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+  }
+  #createComponentBtn {
+    background-color: var(--primary-color);
+    color: white;
+  }
+  
+  #createComponentBtn:hover {
+    background-color: #2980b9;
+  }
+  
+  #hidePartsBtn {
+    background-color: #e74c3c;
+    color: white;
+  }
+  
+  #hidePartsBtn:hover {
+    background-color: #c0392b;
+  }
+  
+  #showAllBtn {
+    background-color: #2ecc71;
+    color: white;
+  }
+  
+  #showAllBtn:hover {
+    background-color: #27ae60;
+  }
+  
+  #clearSelectionsBtn {
+    background-color: #95a5a6;
+    color: white;
+  }
+  
+  #clearSelectionsBtn:hover {
+    background-color: #7f8c8d;
   }

@@ -123,6 +123,9 @@ function initScene() {
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
 
+  // Add mouse event listeners for drag detection and hover
+  container.addEventListener('mousedown', onMouseDown);
+  container.addEventListener('mousemove', handleMouseMovement);
   container.addEventListener('mousemove', onMouseMove);
   container.addEventListener('click', onModelClick);
 
@@ -188,7 +191,22 @@ function onMouseMove(event) {
   }
 }
 
+let isDragging = false;
+
+// Add these to track dragging state
+function onMouseDown() {
+  isDragging = false;
+}
+
+function handleMouseMovement() {
+  isDragging = true;
+}
+
 function onModelClick(event) {
+  if (isDragging || controls.enabled && controls.isOrbitAnimating) {
+    return; // Don't select if we're dragging or orbiting
+  }
+  
   const container = document.querySelector(".right-container");
   const rect = container.getBoundingClientRect();
   
@@ -234,6 +252,17 @@ function updateSelectionCount() {
   }
 }
 
+function removeComponent(componentBox) {
+  // Animate the removal
+  componentBox.style.transition = 'all 0.3s ease';
+  componentBox.style.opacity = '0';
+  componentBox.style.transform = 'scale(0.9)';
+  
+  setTimeout(() => {
+    componentBox.remove();
+  }, 300);
+}
+
 function createComponentFromSelection() {
   if (selectedMeshes.size === 0) {
     alert('Please select at least one part first');
@@ -247,11 +276,23 @@ function createComponentFromSelection() {
   
   let box = document.createElement("div");
   box.classList.add("component-box");
+  
+  // Create header container for name and remove button
+  let headerContainer = document.createElement("div");
+  headerContainer.classList.add("component-header");
+  
+  let removeBtn = document.createElement("button");
+  removeBtn.classList.add("remove-component-btn");
+  removeBtn.innerHTML = '&times;'; // × symbol
+  removeBtn.addEventListener('click', () => removeComponent(box));
 
-  // Component name
+  // Component name and header
   let componentNameElement = document.createElement("h3");
   componentNameElement.textContent = componentName;
-  box.appendChild(componentNameElement);
+  
+  headerContainer.appendChild(componentNameElement);
+  headerContainer.appendChild(removeBtn);
+  box.appendChild(headerContainer);
 
   // Selected parts list
   let partsList = document.createElement("div");
@@ -450,10 +491,59 @@ document.querySelector(".save-button").addEventListener("click", createJob);
 window.createComponentFromSelection = createComponentFromSelection;
 window.clearSelections = clearSelections;
 
+// Add set to track hidden meshes
+let hiddenMeshes = new Set();
+
+// Function to hide selected parts
+function hideSelectedParts() {
+  if (selectedMeshes.size === 0) {
+    alert('Please select parts to hide');
+    return;
+  }
+
+  selectedMeshes.forEach(mesh => {
+    if (Array.isArray(mesh.material)) {
+      mesh.material.forEach(mat => {
+        mat.transparent = true;
+        mat.opacity = 0.1;
+        mat.needsUpdate = true;
+      });
+    } else {
+      mesh.material.transparent = true;
+      mesh.material.opacity = 0.1;
+      mesh.material.needsUpdate = true;
+    }
+    hiddenMeshes.add(mesh);
+  });
+
+  // Clear selection after hiding
+  clearSelections();
+}
+
+// Function to show all hidden parts
+function showAllParts() {
+  hiddenMeshes.forEach(mesh => {
+    if (Array.isArray(mesh.material)) {
+      mesh.material.forEach(mat => {
+        mat.transparent = false;
+        mat.opacity = 1.0;
+        mat.needsUpdate = true;
+      });
+    } else {
+      mesh.material.transparent = false;
+      mesh.material.opacity = 1.0;
+      mesh.material.needsUpdate = true;
+    }
+  });
+  hiddenMeshes.clear();
+}
+
 // Initialize when DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
   // Add event listeners for selection controls
   document.getElementById('createComponentBtn')?.addEventListener('click', createComponentFromSelection);
+  document.getElementById('hidePartsBtn')?.addEventListener('click', hideSelectedParts);
+  document.getElementById('showAllBtn')?.addEventListener('click', showAllParts);
   document.getElementById('clearSelectionsBtn')?.addEventListener('click', clearSelections);
   const params = new URLSearchParams(window.location.search);
   const objUrl = params.get("objUrl");
