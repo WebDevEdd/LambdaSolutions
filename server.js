@@ -177,6 +177,59 @@ app.post("/api/saveJob", async (req, res) => {
     res.status(500).json({ message: "Failed to save job" });
   }
 });
+const { OpenAI } = require("openai");
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY, // Ensure this is set in your .env file
+});
+
+app.post("/api/generate-components", async (req, res) => {
+  try {
+    const { prompt, meshes } = req.body;
+
+    if (!prompt || !meshes || meshes.length === 0) {
+      return res.status(400).json({ message: "Invalid request data" });
+    }
+
+    const aiPrompt = `
+      You are an AI designed to analyze 3D models. 
+      Given a list of mesh names and their positions, find all components and their associated hardware if asked.
+      hardware is anything that starts with "hrd_" in the name and is mounting something.
+      
+      Return a structured JSON format where each bracket has a list of associated fasteners.
+
+      Mesh Data: ${JSON.stringify(meshes)}
+
+      User Prompt: ${prompt}
+
+      Output the response in JSON format like:
+      {
+        "Bracket Assembly 1": [
+          "bkt_Lbracket_ABC123",
+          "Fastener_789X",
+          "Fastener_789X",
+          "Collar_456Y",
+          "Collar_456Y"
+        ]
+      }
+    `;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4-turbo",
+      messages: [{ role: "system", content: aiPrompt }],
+      response_format: { type: "json_object" }, // FIXED FORMAT
+    });
+    
+
+    const structuredComponents = JSON.parse(response.choices[0].message.content);
+
+    res.status(200).json(structuredComponents);
+  } catch (error) {
+    console.error("AI component generation error:", error);
+    res.status(500).json({ message: "Failed to generate components" });
+  }
+});
+
 
 app.post("/upload3DFile", upload.fields([
   { name: 'objFile', maxCount: 1 },

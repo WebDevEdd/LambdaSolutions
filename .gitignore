@@ -9,3 +9,6 @@ node_modules/
 
 # Ignore build files
 /dist
+
+# Ignore AI api
+/src/aiServices/config.js

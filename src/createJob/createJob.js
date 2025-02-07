@@ -1,8 +1,8 @@
-import * as THREE from "three";
-import { OBJLoader } from "three/addons/loaders/OBJLoader.js";
-import { MTLLoader } from "three/addons/loaders/MTLLoader.js";
-import { saveJobToDB } from "./saveJobtoDB.js";
-import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import * as THREE from 'three';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
+import { saveJobToDB } from './saveJobtoDB.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 // Global variables at the top
 let selectedMeshes = new Set();
@@ -245,6 +245,32 @@ function onModelClick(event) {
   }
 }
 
+function updateSelectionCount() {
+  const counter = document.getElementById('selectionCounter');
+  if (counter) {
+    counter.textContent = `Selected parts: ${selectedMeshes.size}`;
+    
+    // Update selected parts list if it exists
+    const selectedPartsList = document.querySelector('.selected-parts-list');
+    if (selectedPartsList) {
+      const ul = selectedPartsList.querySelector('ul');
+      ul.innerHTML = ''; // Clear existing list
+      
+      selectedMeshNames.forEach(name => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        ul.appendChild(li);
+      });
+    }
+  }
+}
+
+function removeComponent(box) {
+  if (confirm('Are you sure you want to remove this component?')) {
+    box.remove();
+  }
+}
+
 function createDropdownSection(title, initialContent = null, addButtonConfig = null) {
   const section = document.createElement("div");
   section.classList.add("parts-section");
@@ -411,7 +437,6 @@ function createComponentFromSelection() {
   clearSelections();
 }
 
-
 function clearSelections() {
   selectedMeshes.forEach(mesh => {
     if (Array.isArray(mesh.material)) {
@@ -453,10 +478,8 @@ function addInput(container, placeholder) {
   return newInput;
 }
 
-// Add these functions to your createJob.js file
-
 // Initialize bulk action buttons
-document.getElementById('selectAll').addEventListener('click', () => {
+document.getElementById('selectAll')?.addEventListener('click', () => {
   const checkboxes = document.querySelectorAll('.component-checkbox');
   const isAllSelected = Array.from(checkboxes).every(checkbox => checkbox.checked);
   
@@ -465,7 +488,7 @@ document.getElementById('selectAll').addEventListener('click', () => {
   });
 });
 
-document.getElementById('addMaterialToSelected').addEventListener('click', async () => {
+document.getElementById('addMaterialToSelected')?.addEventListener('click', async () => {
   const selectedComponents = document.querySelectorAll('.component-checkbox:checked');
 
   if (selectedComponents.length === 0) {
@@ -505,7 +528,7 @@ document.getElementById('addMaterialToSelected').addEventListener('click', async
   alert(`${materialCount} materials added to selected components.`);
 });
 
-document.getElementById('addStepToSelected').addEventListener('click', async () => {
+document.getElementById('addStepToSelected')?.addEventListener('click', async () => {
   const selectedComponents = document.querySelectorAll('.component-checkbox:checked');
 
   if (selectedComponents.length === 0) {
@@ -545,7 +568,6 @@ document.getElementById('addStepToSelected').addEventListener('click', async () 
   alert(`${stepCount} steps added to selected components.`);
 });
 
-
 function animate() {
   requestAnimationFrame(animate);
   controls.update();
@@ -584,8 +606,7 @@ function createJob() {
   allBoxes.forEach((box) => {
     let stepsContainer = box.querySelector(".steps-container");
     let materialsContainer = box.querySelector(".materials-container");
-    let selectedParts = Array.from(box.querySelectorAll('.selected-parts-list li')).map(li => li.textContent);
-
+    let selectedParts = Array.from(box.querySelectorAll('.parts-list li')).map(li => li.textContent);
 
     let componentName = box.querySelector("h3").textContent;
     
@@ -600,7 +621,7 @@ function createJob() {
     let component = {
       name: componentName,
       parts: selectedParts,
-      static: isStatic,
+      static: false, // Default value
       isInstalled: false,
       requiredMaterials: materials,
       steps: steps,
@@ -633,11 +654,7 @@ function createJob() {
 }
 
 // Event listener for the save button
-document.querySelector(".save-button").addEventListener("click", createJob);
-
-// Make functions available globally
-window.createComponentFromSelection = createComponentFromSelection;
-window.clearSelections = clearSelections;
+document.querySelector(".save-button")?.addEventListener("click", createJob);
 
 // Add set to track hidden meshes
 let hiddenMeshes = new Set();
@@ -667,6 +684,123 @@ function hideSelectedParts() {
   // Clear selection after hiding
   clearSelections();
 }
+document.getElementById("generateComponents").addEventListener("click", async () => {
+  const prompt = document.getElementById("aiPrompt").value.trim();
+  if (!prompt) {
+    alert("Please enter a prompt.");
+    return;
+  }
+
+  if (meshes.size === 0) {
+    alert("No 3D model loaded.");
+    return;
+  }
+
+  // Extract mesh names and positions
+  const meshData = [...meshes].map(mesh => ({
+    name: mesh.name,
+    position: mesh.position,
+  }));
+
+  try {
+    const response = await fetch("/api/generate-components", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt, meshes: meshData }),
+    });
+
+    if (!response.ok) throw new Error("Failed to generate components");
+
+    const structuredComponents = await response.json();
+    console.log("Generated Components:", structuredComponents);
+
+// Ensure each bracket has one component box
+const existingBoxes = new Set();
+document.querySelectorAll(".component-box h3").forEach(h3 => existingBoxes.add(h3.textContent));
+
+for (const [assemblyName, parts] of Object.entries(structuredComponents)) {
+  if (!existingBoxes.has(assemblyName)) {
+    createAIComponentBox(assemblyName, parts);
+  }
+}
+
+  } catch (error) {
+    console.error("Error generating AI components:", error);
+    alert("Failed to generate AI components.");
+  }
+});
+
+function createAIComponentBox(assemblyName, parts) {
+  const boxContainer = document.querySelector(".components-container");
+
+  const box = document.createElement("div");
+  box.classList.add("component-box");
+
+  // Header
+  const headerContainer = document.createElement("div");
+  headerContainer.classList.add("component-header");
+
+  const checkbox = document.createElement("input");
+  checkbox.type = "checkbox";
+  checkbox.classList.add("component-checkbox");
+
+  const componentNameElement = document.createElement("h3");
+  componentNameElement.textContent = assemblyName;
+
+  const removeBtn = document.createElement("button");
+  removeBtn.classList.add("remove-component-btn");
+  removeBtn.innerHTML = '&times;';
+  removeBtn.addEventListener('click', () => box.remove());
+
+  headerContainer.appendChild(checkbox);
+  headerContainer.appendChild(componentNameElement);
+  headerContainer.appendChild(removeBtn);
+  box.appendChild(headerContainer);
+
+  // Parts List
+  const partsDropdown = createDropdownSection("Parts", parts);
+  box.appendChild(partsDropdown);
+
+  // Create Specs dropdown (optional if needed)
+  const specsDropdown = createDropdownSection("Specs", null, {
+    placeholder: "Enter spec...",
+  });
+  box.appendChild(specsDropdown);
+
+  // Create Required Materials section
+  const materialsContainer = document.createElement("div");
+  materialsContainer.classList.add("materials-container");
+  const materialsTitle = document.createElement("h4");
+  materialsTitle.textContent = "Required Materials";
+  const materialsAddBtn = createButton("Add Material", "add");
+
+  box.appendChild(materialsTitle);
+  box.appendChild(materialsContainer);
+  box.appendChild(materialsAddBtn);
+
+  // Create Steps section
+  const stepsContainer = document.createElement("div");
+  stepsContainer.classList.add("steps-container");
+  const stepsTitle = document.createElement("h4");
+  stepsTitle.textContent = "Steps";
+  const stepsAddBtn = createButton("Add Step", "add");
+
+  box.appendChild(stepsTitle);
+  box.appendChild(stepsContainer);
+  box.appendChild(stepsAddBtn);
+
+  // Add event listeners for materials and steps
+  materialsAddBtn.addEventListener("click", () =>
+    addInput(materialsContainer, "Enter material...")
+  );
+  stepsAddBtn.addEventListener("click", () =>
+    addInput(stepsContainer, `Step ${stepsContainer.childElementCount + 1}...`)
+  );
+
+  boxContainer.appendChild(box);
+}
+
+
 
 // Function to show all hidden parts
 function showAllParts() {
@@ -693,6 +827,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById('hidePartsBtn')?.addEventListener('click', hideSelectedParts);
   document.getElementById('showAllBtn')?.addEventListener('click', showAllParts);
   document.getElementById('clearSelectionsBtn')?.addEventListener('click', clearSelections);
+  
   const params = new URLSearchParams(window.location.search);
   const objUrl = params.get("objUrl");
   const mtlUrl = params.get("mtlUrl");
@@ -714,5 +849,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("fileInfo").innerHTML = "No file uploaded.";
   }
 });
+
+// Make functions available globally
+window.createComponentFromSelection = createComponentFromSelection;
+window.clearSelections = clearSelections;
 
 initScene();

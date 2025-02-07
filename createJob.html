@@ -11,6 +11,10 @@
 
   
     <div class="left-container">
+      <div class="ai-controls">
+        <input type="text" id="aiPrompt" placeholder="Enter AI prompt (e.g., 'Create components for all brackets and fasteners')">
+        <button id="generateComponents">Generate with AI</button>
+    </div>
         <h1>Create Job</h1>
         
         <div class="job-form">
@@ -71,7 +75,7 @@
         </div>
       </div>
     </div>
-    <script src="/src/createJob/createJob.js" type="module"></script>
+    <script type="module" src="/src/createJob/createJob.js"></script>
     <script type="module" src="/src/createJob/saveJobtoDB.js"></script>
 
   </div>
