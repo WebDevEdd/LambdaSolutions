@@ -144,20 +144,24 @@ export class ComponentManager {
       return;
     }
 
-    const count = prompt("How many materials would you like to add?");
-    if (!count || isNaN(count) || count <= 0) return;
-
-    for (let i = 0; i < count; i++) {
-      const material = prompt(`Enter material #${i + 1}:`);
-      if (!material) continue;
-
-      selectedComponents.forEach((component) => {
-        const materialsContainer = component.querySelector(
-          ".materials-container"
-        );
-        UIManager.addInput(materialsContainer, "Enter material...", material);
+    this.showBulkActionModal("Add Materials", async (count) => {
+      const inputs = document.querySelectorAll(".item-input");
+      inputs.forEach((input) => {
+        const material = input.value.trim();
+        if (material) {
+          selectedComponents.forEach((component) => {
+            const materialsContainer = component.querySelector(
+              ".materials-container"
+            );
+            UIManager.addInput(
+              materialsContainer,
+              "Enter material...",
+              material
+            );
+          });
+        }
       });
-    }
+    });
   }
 
   async addStepToSelected() {
@@ -168,19 +172,69 @@ export class ComponentManager {
       return;
     }
 
-    const count = prompt("How many steps would you like to add?");
-    if (!count || isNaN(count) || count <= 0) return;
-
-    for (let i = 0; i < count; i++) {
-      const step = prompt(`Enter step #${i + 1}:`);
-      if (!step) continue;
-
-      selectedComponents.forEach((component) => {
-        const stepsContainer = component.querySelector(".steps-container");
-        const stepNumber = stepsContainer.childElementCount + 1;
-        UIManager.addInput(stepsContainer, `Step ${stepNumber}...`, step);
+    this.showBulkActionModal("Add Steps", async (count) => {
+      const inputs = document.querySelectorAll(".item-input");
+      inputs.forEach((input, index) => {
+        const step = input.value.trim();
+        if (step) {
+          selectedComponents.forEach((component) => {
+            const stepsContainer = component.querySelector(".steps-container");
+            const stepNumber = stepsContainer.childElementCount + 1;
+            UIManager.addInput(stepsContainer, `Step ${stepNumber}...`, step);
+          });
+        }
       });
-    }
+    });
+  }
+
+  showBulkActionModal(title, callback) {
+    const modal = document.getElementById("bulkActionModal");
+    const modalTitle = document.getElementById("modalTitle");
+    const itemCount = document.getElementById("itemCount");
+    const itemInputs = document.getElementById("itemInputs");
+    const submitBtn = document.getElementById("modalSubmit");
+    const cancelBtn = document.getElementById("modalCancel");
+    const closeBtn = document.querySelector(".close-modal");
+
+    modalTitle.textContent = title;
+    modal.style.display = "block";
+
+    const updateInputs = () => {
+      const count = parseInt(itemCount.value) || 0;
+      itemInputs.innerHTML = "";
+      for (let i = 0; i < count; i++) {
+        const input = document.createElement("input");
+        input.type = "text";
+        input.classList.add("item-input");
+        input.placeholder = `${title.includes("Step") ? "Step" : "Material"} #${
+          i + 1
+        }`;
+        itemInputs.appendChild(input);
+      }
+    };
+
+    itemCount.addEventListener("change", updateInputs);
+    updateInputs();
+
+    const closeModal = () => {
+      modal.style.display = "none";
+      itemCount.value = "1";
+      itemInputs.innerHTML = "";
+    };
+
+    submitBtn.onclick = () => {
+      callback(parseInt(itemCount.value));
+      closeModal();
+    };
+
+    cancelBtn.onclick = closeModal;
+    closeBtn.onclick = closeModal;
+
+    window.onclick = (event) => {
+      if (event.target === modal) {
+        closeModal();
+      }
+    };
   }
 
   // ... other component management methods ...
