@@ -6,17 +6,20 @@ const { S3Client } = require("@aws-sdk/client-s3");
 const cors = require("cors");
 const { MongoClient } = require("mongodb");
 const path = require("path");
+// const Job = require("./models/job"); // Implied import for Job model
 
 const app = express();
 app.use(express.json());
 
 // CORS configuration with expanded headers
-app.use(cors({
-  origin: process.env.CORS_ORIGIN || "*",
-  methods: ["GET", "POST", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  exposedHeaders: ["Content-Disposition", "Content-Type"]
-}));
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || "*",
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+    exposedHeaders: ["Content-Disposition", "Content-Type"],
+  })
+);
 
 // MongoDB setup remains the same
 let db;
@@ -28,13 +31,13 @@ const connectToMongoDB = async () => {
       useUnifiedTopology: true,
     });
     db = client.db("test");
-    console.log("Connected to MongoDB");
+    console.log("Connected to MongoDB successfully");
+    return client; // Return the client for proper initialization
   } catch (error) {
     console.error("MongoDB connection error:", error);
-    setTimeout(connectToMongoDB, 5000);
+    throw error; // Throw the error to handle it in the startup
   }
 };
-connectToMongoDB();
 
 // S3 Configuration
 const s3 = new S3Client({
@@ -56,47 +59,47 @@ const upload = multer({
       const timestamp = Date.now();
       const uploadFolder = `uploads/${timestamp}`;
       const ext = path.extname(file.originalname).toLowerCase();
-      
+
       // Set correct content type based on file extension
       let contentType;
       switch (ext) {
-        case '.obj':
-          contentType = 'application/x-tgif';
+        case ".obj":
+          contentType = "application/x-tgif";
           break;
-        case '.mtl':
-          contentType = 'text/plain';
+        case ".mtl":
+          contentType = "text/plain";
           break;
         default:
-          contentType = 'application/octet-stream';
+          contentType = "application/octet-stream";
       }
-      
+
       file.contentType = contentType;
       const fileName = `${uploadFolder}/${file.fieldname}${ext}`;
       cb(null, fileName);
     },
     metadata: (req, file, cb) => {
       cb(null, { fieldName: file.fieldname });
-    }
+    },
   }),
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB limit
-  }
+  },
 });
 
 app.get("/api/jobs", async (req, res) => {
   try {
-    const jobs = await db.collection("jobs").find().toArray();
-    res.status(200).json(jobs);
+    const jobs = await db.collection("jobs").find({}).toArray();
+    res.json(jobs);
   } catch (error) {
     console.error("Error fetching jobs:", error);
-    res.status(500).json({ message: "Failed to fetch jobs" });
+    res.status(500).json({ message: "Error fetching jobs" });
   }
 });
 
 app.get("/api/job/title/:title", async (req, res) => {
   try {
     const jobTitle = req.params.title;
-    const job = await db.collection("jobs").findOne({ title: jobTitle });
+    const job = await db.collection("jobs").findOne({ jobTitle: jobTitle });
 
     if (!job) {
       return res.status(404).json({ message: "Job not found" });
@@ -122,7 +125,7 @@ app.get("/api/job/:title/model", async (req, res) => {
     // Ensure we're returning the model URLs in the expected format
     const modelUrl = {
       objUrl: job.model.objUrl,
-      mtlUrl: job.model.mtlUrl
+      mtlUrl: job.model.mtlUrl,
     };
 
     res.status(200).json({ modelUrl });
@@ -133,28 +136,37 @@ app.get("/api/job/:title/model", async (req, res) => {
 });
 
 const validateJobData = (job) => {
-  if (!job || typeof job !== 'object') {
+  if (!job || typeof job !== "object") {
     return { valid: false, message: "Invalid job data" };
   }
 
-  if (!job.title || typeof job.title !== 'string') {
+  if (!job.jobTitle || typeof job.jobTitle !== "string") {
     return { valid: false, message: "Invalid or missing job title" };
   }
 
-  if (!job.unit || typeof job.unit !== 'string') {
+  if (!job.unit || typeof job.unit !== "string") {
     return { valid: false, message: "Invalid or missing unit" };
   }
 
-  if (!job.model || typeof job.model !== 'object') {
+  if (!job.description || typeof job.description !== "string") {
+    return { valid: false, message: "Invalid or missing description" };
+  }
+
+  // Check for model object and its URLs
+  if (!job.model || typeof job.model !== "object") {
     return { valid: false, message: "Invalid or missing model data" };
   }
 
-  if (!job.model.objUrl || !job.model.mtlUrl) {
-    return { valid: false, message: "Model data must include both objUrl and mtlUrl" };
+  if (!job.model.obj || typeof job.model.obj !== "string") {
+    return { valid: false, message: "Invalid or missing OBJ file URL" };
   }
 
-  if (typeof job.model.objUrl !== 'string' || typeof job.model.mtlUrl !== 'string') {
-    return { valid: false, message: "Model URLs must be strings" };
+  if (!job.model.mtl || typeof job.model.mtl !== "string") {
+    return { valid: false, message: "Invalid or missing MTL file URL" };
+  }
+
+  if (!job.jobComponents || typeof job.jobComponents !== "object") {
+    return { valid: false, message: "Invalid or missing job components" };
   }
 
   return { valid: true };
@@ -165,7 +177,7 @@ app.post("/api/saveJob", async (req, res) => {
   try {
     const job = req.body;
     const validation = validateJobData(job);
-    
+
     if (!validation.valid) {
       return res.status(400).json({ message: validation.message });
     }
@@ -219,9 +231,10 @@ app.post("/api/generate-components", async (req, res) => {
       messages: [{ role: "system", content: aiPrompt }],
       response_format: { type: "json_object" }, // FIXED FORMAT
     });
-    
 
-    const structuredComponents = JSON.parse(response.choices[0].message.content);
+    const structuredComponents = JSON.parse(
+      response.choices[0].message.content
+    );
 
     res.status(200).json(structuredComponents);
   } catch (error) {
@@ -230,75 +243,71 @@ app.post("/api/generate-components", async (req, res) => {
   }
 });
 
+app.post(
+  "/upload3DFile",
+  upload.fields([
+    { name: "objFile", maxCount: 1 },
+    { name: "mtlFile", maxCount: 1 },
+  ]),
+  (req, res) => {
+    try {
+      const files = req.files;
 
-app.post("/upload3DFile", upload.fields([
-  { name: 'objFile', maxCount: 1 },
-  { name: 'mtlFile', maxCount: 1 }
-]), (req, res) => {
-  try {
-    const files = req.files;
-    
-    if (!files || !files.objFile) {
-      return res.status(400).json({ message: "No OBJ file uploaded" });
+      if (!files || !files.objFile) {
+        return res.status(400).json({ message: "No OBJ file uploaded" });
+      }
+
+      const objFile = files.objFile[0];
+      const mtlFile = files.mtlFile ? files.mtlFile[0] : null;
+
+      // Return both URLs in the response
+      const response = {
+        objUrl: objFile.location, // S3 URL for the OBJ file
+        mtlUrl: mtlFile ? mtlFile.location : null, // S3 URL for the MTL file (if exists)
+      };
+
+      // Log the response for debugging
+      console.log("Upload successful, returning URLs:", response);
+
+      res.status(200).json(response);
+    } catch (error) {
+      console.error("Error handling file upload:", error);
+      res.status(500).json({
+        message: "Error uploading file",
+        error: error.message,
+      });
     }
-
-    const objFile = files.objFile[0];
-    const mtlFile = files.mtlFile ? files.mtlFile[0] : null;
-
-    // Return both URLs in the response
-    const response = {
-      objUrl: objFile.location, // S3 URL for the OBJ file
-      mtlUrl: mtlFile ? mtlFile.location : null // S3 URL for the MTL file (if exists)
-    };
-
-    // Log the response for debugging
-    console.log('Upload successful, returning URLs:', response);
-
-    res.status(200).json(response);
-  } catch (error) {
-    console.error('Error handling file upload:', error);
-    res.status(500).json({ 
-      message: "Error uploading file", 
-      error: error.message 
-    });
   }
+);
+
+// Update the static files middleware
+app.use(express.static(path.join(__dirname, "dist")));
+
+// Add a specific route for HTML files
+app.get("*.html", (req, res) => {
+  res.sendFile(path.join(__dirname, "dist", req.path));
 });
 
-// AFTER all API routes, handle static files
-app.use(express.static(path.join(__dirname, "dist"), {
-  setHeaders: (res, filePath) => {
-    const ext = path.extname(filePath).toLowerCase();
-    if (ext === '.obj') {
-      res.setHeader('Content-Type', 'application/x-tgif');
-    } else if (ext === '.mtl') {
-      res.setHeader('Content-Type', 'text/plain');
-    }
-  }
-}));
-
 // The catch-all route should be LAST
-app.get("*", (req, res, next) => {
-  if (req.path.startsWith('/api/')) {
-    // If it's an API route that wasn't matched, return 404
+app.get("*", (req, res) => {
+  if (req.path.startsWith("/api/")) {
     return res.status(404).json({ message: "API endpoint not found" });
   }
-  
-  if (req.path.includes(".") && !req.path.endsWith(".html")) {
-    return next();
-  }
-  
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
 const PORT = process.env.PORT || 3000;
 
-const startServer = () => {
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
+const startServer = async () => {
+  try {
+    await connectToMongoDB();
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to start server:", error);
+    process.exit(1); // Exit if we can't connect to MongoDB
+  }
 };
 
-// Only start server after MongoDB connects
-connectToMongoDB().then(() => {
-  startServer();
-});
+startServer();

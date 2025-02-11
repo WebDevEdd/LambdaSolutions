@@ -52,7 +52,7 @@ body {
     
     /* Operations Section */
     .operations-section {
-      width: 100%; /* Ensure it doesn’t exceed parent width */
+      width: 100%; /* Ensure it doesn't exceed parent width */
       max-width: 600px;
       background-color: white;
       border-radius: 12px;
@@ -78,6 +78,14 @@ body {
       border: 1px solid #e2e8f0; /* Light gray border */
       border-radius: 8px;
       background-color: #f9fafb; /* Light background */
+      transition: background-color 0.3s ease;
+    }
+    .operation:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+    .operation.selected {
+      background-color: rgba(45, 136, 255, 0.1);
+      border-left: 4px solid #2d88ff;
     }
     /* Operation Name */
     .operation-name {

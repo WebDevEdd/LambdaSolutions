@@ -156,3 +156,19 @@ body {
     font-size: 20px;
     font-weight: bold;
 }
+
+.job-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+    z-index: 1;
+}
+
+.job-row:hover {
+    background-color: #f5f5f5;
+}
+
+/* Remove the pointer-events property entirely */
+/* .job-row td {
+    pointer-events: auto;
+} */

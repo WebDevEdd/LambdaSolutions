@@ -6,10 +6,10 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: "./index.html",
-        createJob: "./createJob.html", // Create Job page // Main entry point
-        jobWorkView: "./src/jobWorkView/jobWorkView.html", // Job Work View page
-        upload3DFile: "./upload3DFile.html", // Upload 3D File page
+        main: "index.html",
+        jobWorkView: "jobWorkView.html",
+        upload3DFile: "upload3DFile.html",
+        createJob: "createJob.html",
       },
       output: {
         manualChunks(id) {
@@ -28,7 +28,10 @@ export default defineConfig({
     port: 4173,
     open: true,
     proxy: {
-      "/api": "http://localhost:3000",
+      "/api": {
+        target: "http://localhost:3000",
+        changeOrigin: true,
+      },
     },
   },
 });

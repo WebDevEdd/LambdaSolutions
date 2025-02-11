@@ -196,6 +196,35 @@ export function load3DModel(modelUrls, containerSelector) {
     );
   }
 
+  function highlightMesh(mesh, intensity = 1.2) {
+    if (Array.isArray(mesh.material)) {
+      mesh.material.forEach(mat => {
+        const newColor = mat.color.clone();
+        newColor.multiplyScalar(intensity);
+        mat.color.copy(newColor);
+      });
+    } else {
+      const newColor = mesh.material.color.clone();
+      newColor.multiplyScalar(intensity);
+      mesh.material.color.copy(newColor);
+    }
+  }
+
+  function resetMeshMaterial(mesh) {
+    if (Array.isArray(mesh.material)) {
+      mesh.material.forEach((mat, index) => {
+        if (mesh.userData.originalMaterial) {
+          const originalMat = Array.isArray(mesh.userData.originalMaterial)
+            ? mesh.userData.originalMaterial[index]
+            : mesh.userData.originalMaterial;
+          mat.color.copy(originalMat.color);
+        }
+      });
+    } else if (mesh.userData.originalMaterial) {
+      mesh.material.color.copy(mesh.userData.originalMaterial.color);
+    }
+  }
+
   function onMouseMove(event) {
     const rect = container.getBoundingClientRect();
     mouse.x = ((event.clientX - rect.left) / container.clientWidth) * 2 - 1;
@@ -206,14 +235,7 @@ export function load3DModel(modelUrls, containerSelector) {
 
     // Reset previous hover
     if (hoveredMesh) {
-      if (Array.isArray(hoveredMesh.material)) {
-        hoveredMesh.material.forEach((mat, index) => {
-          const originalMat = hoveredMesh.userData.originalMaterial[index];
-          mat.color.copy(originalMat.color);
-        });
-      } else {
-        hoveredMesh.material.color.copy(hoveredMesh.userData.originalMaterial.color);
-      }
+      resetMeshMaterial(hoveredMesh);
       hoveredMesh = null;
       componentNameDisplay.textContent = '';
     }
@@ -221,17 +243,7 @@ export function load3DModel(modelUrls, containerSelector) {
     // Set new hover
     if (intersects.length > 0) {
       hoveredMesh = intersects[0].object;
-      const highlightColor = new THREE.Color(0xff0000);
-      
-      if (Array.isArray(hoveredMesh.material)) {
-        hoveredMesh.material.forEach(mat => {
-          mat.color.copy(highlightColor);
-        });
-      } else {
-        hoveredMesh.material.color.copy(highlightColor);
-      }
-
-      // Display component name
+      highlightMesh(hoveredMesh);
       componentNameDisplay.textContent = hoveredMesh.userData.componentName;
     }
   }
@@ -272,19 +284,98 @@ export function load3DModel(modelUrls, containerSelector) {
 
   window.addEventListener('resize', onWindowResize);
 
-  return () => {
-    window.removeEventListener('resize', onWindowResize);
-    container.removeEventListener('mousemove', onMouseMove);
-    container.removeChild(uiOverlay);
+  // Add this function to focus on specific parts
+  function focusOnParts(partNames) {
+    if (!partNames || partNames.length === 0) return;
+
+    // Find all meshes that match the part names
+    const targetMeshes = [...meshes].filter(mesh => 
+      partNames.includes(mesh.userData.componentName)
+    );
+
+    if (targetMeshes.length === 0) return;
+
+    // Calculate bounding box of all target meshes
+    const boundingBox = new THREE.Box3();
+    targetMeshes.forEach(mesh => {
+      mesh.geometry.computeBoundingBox();
+      const meshBox = mesh.geometry.boundingBox.clone();
+      meshBox.applyMatrix4(mesh.matrixWorld);
+      boundingBox.union(meshBox);
+    });
+
+    // Calculate center and size of bounding box
+    const center = new THREE.Vector3();
+    boundingBox.getCenter(center);
+    const size = new THREE.Vector3();
+    boundingBox.getSize(size);
+
+    // Calculate camera position
+    const maxDim = Math.max(size.x, size.y, size.z);
+    const distance = maxDim * 3; // Reduced zoom-out distance
+    const direction = new THREE.Vector3(1, 1, 1).normalize();
+    const cameraPosition = center.clone().add(direction.multiplyScalar(distance));
+
+    // Highlight the parts
     meshes.forEach(mesh => {
-      if (mesh.geometry) mesh.geometry.dispose();
-      if (Array.isArray(mesh.material)) {
-        mesh.material.forEach(mat => mat.dispose());
-      } else if (mesh.material) {
-        mesh.material.dispose();
+      if (partNames.includes(mesh.userData.componentName)) {
+        highlightMesh(mesh, 1.5); // Brighter highlight for selected parts
+      } else {
+        // Optional: dim other parts
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach(mat => {
+            mat.transparent = true;
+            mat.opacity = 0.3;
+          });
+        } else {
+          mesh.material.transparent = true;
+          mesh.material.opacity = 0.3;
+        }
       }
     });
-    renderer.dispose();
-    container.removeChild(renderer.domElement);
+
+    // Animate camera movement
+    const duration = 1000; // milliseconds
+    const startPosition = camera.position.clone();
+    const startTarget = controls.target.clone();
+    const startTime = Date.now();
+
+    function updateCamera() {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // Smooth easing
+      const easeProgress = 1 - Math.pow(1 - progress, 3);
+
+      // Update camera position
+      camera.position.lerpVectors(startPosition, cameraPosition, easeProgress);
+      controls.target.lerpVectors(startTarget, center, easeProgress);
+      
+      if (progress < 1) {
+        requestAnimationFrame(updateCamera);
+      }
+    }
+
+    updateCamera();
+  }
+
+  // Export the focusOnParts function
+  return {
+    cleanup: () => {
+      window.removeEventListener('resize', onWindowResize);
+      container.removeEventListener('mousemove', onMouseMove);
+      container.removeChild(uiOverlay);
+      meshes.forEach(mesh => {
+        if (mesh.geometry) mesh.geometry.dispose();
+        if (Array.isArray(mesh.material)) {
+          mesh.material.forEach(mat => mat.dispose());
+        } else if (mesh.material) {
+          mesh.material.dispose();
+        }
+      });
+      renderer.dispose();
+      container.removeChild(renderer.domElement);
+    },
+    focusOnParts: focusOnParts
   };
 }

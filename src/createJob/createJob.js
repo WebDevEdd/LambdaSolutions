@@ -10,6 +10,42 @@ let selectionManager;
 let componentManager;
 let jobManager;
 
+// Initialize IndexedDB
+const dbName = "tempFilesDB";
+const storeName = "files";
+let db;
+
+const initDB = () => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, 1);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      db = request.result;
+      resolve(db);
+    };
+
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(storeName)) {
+        db.createObjectStore(storeName);
+      }
+    };
+  });
+};
+
+// Get file from IndexedDB
+const getFile = (key) => {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction([storeName], "readonly");
+    const store = transaction.objectStore(storeName);
+    const request = store.get(key);
+
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => resolve(request.result);
+  });
+};
+
 function initializeEventListeners() {
   const container = document.querySelector(".right-container");
 
@@ -145,19 +181,57 @@ function loadModelFromURL() {
   }
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const container = document.querySelector(".right-container");
+// Add this function to convert base64 back to File
+function base64ToFile(base64, filename, mimeType) {
+  const byteString = atob(base64.split(",")[1]);
+  const ab = new ArrayBuffer(byteString.length);
+  const ia = new Uint8Array(ab);
 
-  sceneManager = new SceneManager(container);
-  modelLoader = new ModelLoader(sceneManager.scene);
-  selectionManager = new SelectionManager(
-    sceneManager.scene,
-    sceneManager.camera,
-    modelLoader.meshes
-  );
-  componentManager = new ComponentManager();
-  jobManager = new JobManager(componentManager);
+  for (let i = 0; i < byteString.length; i++) {
+    ia[i] = byteString.charCodeAt(i);
+  }
 
-  initializeEventListeners();
-  loadModelFromURL();
+  return new File([ab], filename, { type: mimeType });
+}
+
+document.addEventListener("DOMContentLoaded", async () => {
+  try {
+    // Initialize IndexedDB and get files
+    await initDB();
+    const objFile = await getFile("tempObjFile");
+    const mtlFile = await getFile("tempMtlFile");
+
+    if (objFile) {
+      jobManager.setLocalFiles(objFile, mtlFile);
+    }
+
+    // Clean up stored files
+    const transaction = db.transaction([storeName], "readwrite");
+    const store = transaction.objectStore(storeName);
+    store.clear();
+
+    // Initialize the rest of your application
+    const container = document.querySelector(".right-container");
+    sceneManager = new SceneManager(container);
+    modelLoader = new ModelLoader(sceneManager.scene);
+    selectionManager = new SelectionManager(
+      sceneManager.scene,
+      sceneManager.camera,
+      modelLoader.meshes
+    );
+    componentManager = new ComponentManager();
+    jobManager = new JobManager(componentManager);
+
+    initializeEventListeners();
+    loadModelFromURL();
+  } catch (error) {
+    console.error("Error initializing:", error);
+  }
+});
+
+// Clean up when leaving
+window.addEventListener("beforeunload", () => {
+  if (db) {
+    db.close();
+  }
 });

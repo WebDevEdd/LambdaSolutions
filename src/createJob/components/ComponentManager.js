@@ -197,11 +197,16 @@ export class ComponentManager {
     const closeBtn = document.querySelector(".close-modal");
 
     modalTitle.textContent = title;
-    modal.style.display = "block";
+    modal.classList.add("show");
+
+    // Create a container for inputs
+    itemInputs.innerHTML = '<div class="item-inputs-container"></div>';
+    const inputsContainer = itemInputs.querySelector(".item-inputs-container");
 
     const updateInputs = () => {
       const count = parseInt(itemCount.value) || 0;
-      itemInputs.innerHTML = "";
+      inputsContainer.innerHTML = "";
+
       for (let i = 0; i < count; i++) {
         const input = document.createElement("input");
         input.type = "text";
@@ -209,7 +214,31 @@ export class ComponentManager {
         input.placeholder = `${title.includes("Step") ? "Step" : "Material"} #${
           i + 1
         }`;
-        itemInputs.appendChild(input);
+
+        // Add keyboard navigation
+        input.addEventListener("keydown", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            const inputs = [...inputsContainer.querySelectorAll(".item-input")];
+            const currentIndex = inputs.indexOf(e.target);
+
+            if (currentIndex < inputs.length - 1) {
+              // Move to next input
+              inputs[currentIndex + 1].focus();
+            } else if (currentIndex === inputs.length - 1) {
+              // If it's the last input, submit the form
+              submitBtn.click();
+            }
+          }
+        });
+
+        inputsContainer.appendChild(input);
+      }
+
+      // Focus the first input after creating them
+      const firstInput = inputsContainer.querySelector(".item-input");
+      if (firstInput) {
+        firstInput.focus();
       }
     };
 
@@ -217,7 +246,7 @@ export class ComponentManager {
     updateInputs();
 
     const closeModal = () => {
-      modal.style.display = "none";
+      modal.classList.remove("show");
       itemCount.value = "1";
       itemInputs.innerHTML = "";
     };
@@ -230,11 +259,19 @@ export class ComponentManager {
     cancelBtn.onclick = closeModal;
     closeBtn.onclick = closeModal;
 
+    // Close modal on outside click
     window.onclick = (event) => {
       if (event.target === modal) {
         closeModal();
       }
     };
+
+    // Add keyboard shortcut to close modal
+    modal.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        closeModal();
+      }
+    });
   }
 
   // ... other component management methods ...
