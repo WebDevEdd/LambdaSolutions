@@ -1,0 +1,56 @@
+{
+      "jobTitle": "24-BKT-1200",
+      "unit": "U2",
+      "description": "This job will install the necessary brackets to mount wire harnesses in LH nose",
+      "modelURL": "model-url.com/modelForThisJob",
+      "partsOfModel": {
+            "LRU": [],
+            "HRD": [],
+            "BKT": [],
+            "STR": [],
+            "WIR": []
+      },
+      "jobComponents": {
+            "EXAMPLE 1": {
+                  "parts": [
+                        {
+                              "name": "IDF123U8",
+                              "type": "fastener",
+                              "quantity": 2
+                        },
+                        {
+                              "name": "IDB123H5",
+                              "type": "bracket",
+                              "quantity": 1
+                        }
+                  ],
+                  "requiredMaterials": [
+                        {
+                              "name": "p-198"
+                        },
+                        {
+                              "name": "seal"
+                        }
+                  ],
+                  "steps": [
+                        {
+                              "step1": "clean and prepare mating surfaces",
+                              "isComplete": false
+                        },
+                        {
+                              "step": "fay seal mating surfaces",
+                              "isComplete": false
+                        }
+                  ],
+                  "specs": [
+                        {
+                              "spec1": "spec1"
+                        },
+                        {
+                              "spec2": "spec2"
+                        }
+                  ]
+            }
+      },
+      "isComplete": false
+}
